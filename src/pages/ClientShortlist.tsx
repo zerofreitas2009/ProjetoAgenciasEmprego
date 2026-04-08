@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { hr_matchScore } from "@/lib/hr_match";
 import { Check, X, UsersRound } from "lucide-react";
 
@@ -15,6 +16,7 @@ type Row = {
   application_id: string;
   current_stage: string;
   application_status: string;
+  feedback_notes: string | null;
   candidate_display_name: string;
   candidate_skills: unknown;
 };
@@ -27,6 +29,7 @@ function skillsToArray(skills: unknown): string[] {
 export default function ClientShortlist() {
   const { token } = useParams();
   const [isSaving, setIsSaving] = useState<string | null>(null);
+  const [draftNotes, setDraftNotes] = useState<Record<string, string>>({});
 
   const shortlistQuery = useQuery({
     queryKey: ["hr_guest_shortlist", token],
@@ -52,6 +55,7 @@ export default function ClientShortlist() {
         p_token: token,
         p_application_id: applicationId,
         p_status: status,
+        p_feedback_notes: draftNotes[applicationId] ?? null,
       });
       if (error) throw error;
       await shortlistQuery.refetch();
@@ -121,6 +125,9 @@ export default function ClientShortlist() {
                   row.job_requirements
                 );
                 const skills = skillsToArray(row.candidate_skills);
+                const currentDraft =
+                  draftNotes[row.application_id] ?? row.feedback_notes ?? "";
+
                 return (
                   <div
                     key={row.application_id}
@@ -173,22 +180,49 @@ export default function ClientShortlist() {
                       </div>
                     </div>
 
-                    {skills.length > 0 ? (
-                      <div className="mt-4 flex flex-wrap gap-2">
-                        {skills.slice(0, 12).map((s) => (
-                          <span
-                            key={s}
-                            className="rounded-full bg-slate-50 px-3 py-1 text-xs font-medium text-slate-700 ring-1 ring-black/5"
-                          >
-                            {s}
-                          </span>
-                        ))}
+                    <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                      <div>
+                        <div className="text-xs font-semibold text-slate-700">
+                          Qualificações
+                        </div>
+                        {skills.length > 0 ? (
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            {skills.slice(0, 12).map((s) => (
+                              <span
+                                key={s}
+                                className="rounded-full bg-slate-50 px-3 py-1 text-xs font-medium text-slate-700 ring-1 ring-black/5"
+                              >
+                                {s}
+                              </span>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="mt-2 text-sm text-slate-600">
+                            Skills não informadas.
+                          </p>
+                        )}
                       </div>
-                    ) : (
-                      <p className="mt-4 text-sm text-slate-600">
-                        Skills não informadas.
-                      </p>
-                    )}
+
+                      <div>
+                        <div className="text-xs font-semibold text-slate-700">
+                          Feedback (opcional)
+                        </div>
+                        <Textarea
+                          className="mt-2 min-h-[90px] rounded-2xl bg-white/80"
+                          value={currentDraft}
+                          onChange={(e) =>
+                            setDraftNotes((prev) => ({
+                              ...prev,
+                              [row.application_id]: e.target.value,
+                            }))
+                          }
+                          placeholder="Ex: Gostei do perfil, focar em experiência com X."
+                        />
+                        <p className="mt-1 text-xs text-slate-500">
+                          Ao aprovar/reprovar, seu feedback é salvo e fica visível para a agência.
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 );
               })}
