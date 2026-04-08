@@ -8,6 +8,37 @@ import { Card } from "@/components/ui/card";
 import { hr_Logo as HrLogo } from "@/components/hr_Logo";
 import { useTheme } from "next-themes";
 
+const ptBR = {
+  variables: {
+    sign_in: {
+      email_label: "E-mail",
+      password_label: "Senha",
+      button_label: "Entrar",
+      loading_button_label: "Entrando…",
+      link_text: "Já tem uma conta? Entre",
+    },
+    sign_up: {
+      email_label: "E-mail",
+      password_label: "Senha",
+      button_label: "Criar conta",
+      loading_button_label: "Criando…",
+      link_text: "Não tem conta? Cadastre-se",
+      confirmation_text: "Verifique seu e-mail para confirmar seu acesso.",
+    },
+    forgotten_password: {
+      email_label: "E-mail",
+      button_label: "Enviar instruções",
+      loading_button_label: "Enviando…",
+      link_text: "Esqueceu sua senha?",
+    },
+    update_password: {
+      password_label: "Nova senha",
+      button_label: "Atualizar senha",
+      loading_button_label: "Atualizando…",
+    },
+  },
+} as const;
+
 export default function Login() {
   const navigate = useNavigate();
   const { session } = useSession();
@@ -79,6 +110,7 @@ export default function Login() {
             providers={[]}
             appearance={authAppearance}
             theme={currentTheme === "dark" ? "dark" : "light"}
+            localization={ptBR as any}
           />
         </Card>
 
