@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link, Navigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import { motion } from "framer-motion";
 import { Layout } from "@/components/Layout";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/auth/SessionProvider";
@@ -37,6 +38,11 @@ type Candidate = {
 type Company = {
   id: string;
   name: string;
+};
+
+const fadeUp = {
+  hidden: { opacity: 0, y: 10 },
+  show: { opacity: 1, y: 0 },
 };
 
 export default function Dashboard() {
@@ -265,9 +271,15 @@ export default function Dashboard() {
 
   return (
     <Layout>
-      <div className="space-y-5">
+      <motion.div
+        initial="hidden"
+        animate="show"
+        variants={fadeUp}
+        transition={{ type: "spring", stiffness: 260, damping: 24 }}
+        className="space-y-5"
+      >
         <div className="grid gap-3 sm:grid-cols-3">
-          <Card className="rounded-2xl border-black/5 bg-white/70 p-5 shadow-sm backdrop-blur dark:border-white/10 dark:bg-white/5">
+          <Card className="rounded-3xl p-5 hr-glass">
             <div className="text-xs font-semibold text-slate-600 dark:text-slate-300">
               Vagas ativas
             </div>
@@ -283,7 +295,7 @@ export default function Dashboard() {
             </p>
           </Card>
 
-          <Card className="rounded-2xl border-black/5 bg-white/70 p-5 shadow-sm backdrop-blur dark:border-white/10 dark:bg-white/5">
+          <Card className="rounded-3xl p-5 hr-glass">
             <div className="text-xs font-semibold text-slate-600 dark:text-slate-300">
               Funil geral
             </div>
@@ -307,7 +319,7 @@ export default function Dashboard() {
                     <span className="truncate text-sm text-slate-700 dark:text-slate-200">
                       {x.stage}
                     </span>
-                    <Badge className="rounded-full bg-white text-slate-700 ring-1 ring-black/5 dark:bg-white/10 dark:text-slate-200 dark:ring-white/10">
+                    <Badge className="rounded-full bg-white/60 text-slate-700 ring-1 ring-slate-200 dark:bg-white/10 dark:text-slate-200 dark:ring-white/10">
                       {x.count}
                     </Badge>
                   </div>
@@ -316,7 +328,7 @@ export default function Dashboard() {
             </div>
           </Card>
 
-          <Card className="rounded-2xl border-black/5 bg-white/70 p-5 shadow-sm backdrop-blur dark:border-white/10 dark:bg-white/5">
+          <Card className="rounded-3xl p-5 hr-glass">
             <div className="text-xs font-semibold text-slate-600 dark:text-slate-300">
               Time-to-hire
             </div>
@@ -336,7 +348,7 @@ export default function Dashboard() {
         </div>
 
         <Tabs defaultValue="jobs" className="space-y-4">
-          <TabsList className="w-full justify-start rounded-xl bg-white/70 p-1 ring-1 ring-black/5 dark:bg-white/5 dark:ring-white/10">
+          <TabsList className="w-full justify-start rounded-2xl bg-[#F8FAFC]/80 p-1 ring-1 ring-slate-200 backdrop-blur-md dark:bg-white/5 dark:ring-white/10">
             <TabsTrigger
               value="jobs"
               className="rounded-xl data-[state=active]:bg-[hsl(var(--primary))] data-[state=active]:text-[hsl(var(--primary-foreground))]"
@@ -358,7 +370,7 @@ export default function Dashboard() {
             />
 
             <div className="grid gap-4 lg:grid-cols-[1.1fr_1.9fr]">
-              <Card className="rounded-3xl border-black/5 bg-white/70 p-5 shadow-sm backdrop-blur dark:border-white/10 dark:bg-white/5">
+              <Card className="rounded-[28px] p-5 hr-glass">
                 <div className="flex items-end justify-between gap-3">
                   <div>
                     <h2 className="text-base font-semibold">Vagas</h2>
@@ -387,7 +399,7 @@ export default function Dashboard() {
                       <Skeleton className="h-[110px] w-full rounded-3xl" />
                     </div>
                   ) : (jobsQuery.data ?? []).length === 0 ? (
-                    <div className="rounded-3xl bg-white/60 p-6 text-center ring-1 ring-black/5 dark:bg-white/5 dark:ring-white/10">
+                    <div className="rounded-3xl bg-white/60 p-6 text-center ring-1 ring-slate-200 dark:bg-white/5 dark:ring-white/10">
                       <p className="text-sm text-slate-600 dark:text-slate-300">
                         Crie sua primeira vaga para começar.
                       </p>
@@ -410,7 +422,7 @@ export default function Dashboard() {
 
               {selectedJob ? (
                 <div className="space-y-4">
-                  <Card className="rounded-3xl border-black/5 bg-white/70 p-5 shadow-sm backdrop-blur dark:border-white/10 dark:bg-white/5">
+                  <Card className="rounded-[28px] p-5 hr-glass">
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                       <div>
                         <div className="text-xs font-semibold text-slate-600 dark:text-slate-300">
@@ -420,26 +432,18 @@ export default function Dashboard() {
                           Mostra apenas a shortlist e permite feedback.
                         </div>
                       </div>
-                      <Button
-                        className="h-11 rounded-xl bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))] shadow-sm hover:opacity-95"
-                        onClick={generateGuestLink}
-                        disabled={isGeneratingLink}
-                      >
+                      <Button className="h-11 rounded-xl hr-btn-primary" onClick={generateGuestLink} disabled={isGeneratingLink}>
                         <LinkIcon className="mr-2 h-4 w-4" />
                         {isGeneratingLink ? "Gerando…" : "Gerar & copiar"}
                       </Button>
                     </div>
 
                     {guestLink ? (
-                      <div className="mt-3 flex flex-col gap-2 rounded-2xl bg-white/60 p-3 ring-1 ring-black/5 dark:bg-white/5 dark:ring-white/10 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="mt-3 flex flex-col gap-2 rounded-2xl bg-white/60 p-3 ring-1 ring-slate-200 dark:bg-white/5 dark:ring-white/10 sm:flex-row sm:items-center sm:justify-between">
                         <div className="min-w-0 break-all text-xs text-slate-700 dark:text-slate-200">
                           {guestLink}
                         </div>
-                        <Button
-                          variant="secondary"
-                          className="h-9 rounded-xl bg-white/70 ring-1 ring-black/5 hover:bg-white dark:bg-white/5 dark:ring-white/10 dark:hover:bg-white/10"
-                          onClick={() => navigator.clipboard.writeText(guestLink)}
-                        >
+                        <Button variant="secondary" className="h-9 rounded-xl hr-btn-secondary" onClick={() => navigator.clipboard.writeText(guestLink)}>
                           <Copy className="mr-2 h-4 w-4" />
                           Copiar
                         </Button>
@@ -464,7 +468,7 @@ export default function Dashboard() {
                   />
                 </div>
               ) : (
-                <Card className="rounded-3xl border-black/5 bg-white/70 p-6 text-center shadow-sm backdrop-blur dark:border-white/10 dark:bg-white/5">
+                <Card className="rounded-[28px] p-6 text-center hr-glass">
                   <p className="text-sm text-slate-600 dark:text-slate-300">
                     Selecione uma vaga para visualizar as etapas.
                   </p>
@@ -474,7 +478,7 @@ export default function Dashboard() {
           </TabsContent>
 
           <TabsContent value="candidates">
-            <Card className="rounded-3xl border-black/5 bg-white/70 p-5 shadow-sm backdrop-blur dark:border-white/10 dark:bg-white/5">
+            <Card className="rounded-[28px] p-5 hr-glass">
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-base font-semibold">Candidatos</h2>
@@ -489,10 +493,10 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              <div className="mt-4 overflow-hidden rounded-2xl ring-1 ring-black/5 dark:ring-white/10">
+              <div className="mt-4 overflow-hidden rounded-2xl ring-1 ring-slate-200 dark:ring-white/10">
                 <Table>
                   <TableHeader>
-                    <TableRow className="bg-slate-50/70 dark:bg-white/5">
+                    <TableRow className="bg-[#F8FAFC]/80 dark:bg-white/5">
                       <TableHead className="text-slate-600 dark:text-slate-300">
                         Nome
                       </TableHead>
@@ -537,7 +541,7 @@ export default function Dashboard() {
                       candidateRows.map((c) => (
                         <TableRow
                           key={c.id}
-                          className="transition hover:bg-slate-50/70 dark:hover:bg-white/5"
+                          className="transition hover:bg-[#F8FAFC]/80 dark:hover:bg-white/5"
                         >
                           <TableCell className="font-medium">
                             <Link
@@ -551,7 +555,7 @@ export default function Dashboard() {
                             {c.email}
                           </TableCell>
                           <TableCell>
-                            <Badge className="rounded-full bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))]">
+                            <Badge className="rounded-full bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))] shadow-lg shadow-violet-500/15">
                               {c.status}
                             </Badge>
                           </TableCell>
@@ -567,7 +571,7 @@ export default function Dashboard() {
             </Card>
           </TabsContent>
         </Tabs>
-      </div>
+      </motion.div>
     </Layout>
   );
 }

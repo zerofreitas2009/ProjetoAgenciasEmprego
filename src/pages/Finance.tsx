@@ -122,11 +122,11 @@ export default function Finance() {
   return (
     <Layout>
       {roleQuery.data && roleQuery.data !== "ADMIN" ? (
-        <Card className="rounded-3xl border-black/5 bg-white/70 p-6 shadow-sm backdrop-blur dark:border-white/10 dark:bg-white/5">
+        <Card className="rounded-[28px] p-6 hr-glass">
           <h1 className="text-2xl font-semibold tracking-tight">Acesso restrito</h1>
           <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
             A página financeira está disponível apenas para usuários com role
-            <span className="ml-2 rounded-full bg-white/60 px-2 py-0.5 font-mono text-xs text-slate-700 ring-1 ring-black/5 dark:bg-white/10 dark:text-slate-200 dark:ring-white/10">
+            <span className="ml-2 rounded-full bg-white/60 px-2 py-0.5 font-mono text-xs text-slate-700 ring-1 ring-slate-200 dark:bg-white/10 dark:text-slate-200 dark:ring-white/10">
               ADMIN
             </span>
             .
@@ -135,7 +135,7 @@ export default function Finance() {
       ) : (
         <div className="space-y-4">
           <div className="grid gap-3 sm:grid-cols-2">
-            <Card className="rounded-2xl border-black/5 bg-white/70 p-5 shadow-sm backdrop-blur dark:border-white/10 dark:bg-white/5">
+            <Card className="rounded-3xl p-5 hr-glass">
               <div className="text-xs font-semibold text-slate-600 dark:text-slate-300">
                 Faturamento previsto
               </div>
@@ -151,7 +151,7 @@ export default function Finance() {
               </p>
             </Card>
 
-            <Card className="rounded-2xl border-black/5 bg-white/70 p-5 shadow-sm backdrop-blur dark:border-white/10 dark:bg-white/5">
+            <Card className="rounded-3xl p-5 hr-glass">
               <div className="text-xs font-semibold text-slate-600 dark:text-slate-300">
                 Faturamento realizado
               </div>
@@ -168,7 +168,7 @@ export default function Finance() {
             </Card>
           </div>
 
-          <Card className="rounded-3xl border-black/5 bg-white/70 p-5 shadow-sm backdrop-blur dark:border-white/10 dark:bg-white/5">
+          <Card className="rounded-[28px] p-5 hr-glass">
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-base font-semibold">Placements do mês</h2>
@@ -190,10 +190,10 @@ export default function Finance() {
               </div>
             ) : null}
 
-            <div className="mt-4 overflow-hidden rounded-2xl ring-1 ring-black/5 dark:ring-white/10">
+            <div className="mt-4 overflow-hidden rounded-2xl ring-1 ring-slate-200 dark:ring-white/10">
               <Table>
                 <TableHeader>
-                  <TableRow className="bg-slate-50/70 dark:bg-white/5">
+                  <TableRow className="bg-[#F8FAFC]/80 dark:bg-white/5">
                     <TableHead className="text-slate-600 dark:text-slate-300">
                       Cliente
                     </TableHead>
@@ -238,7 +238,7 @@ export default function Finance() {
                       return (
                         <TableRow
                           key={p.id}
-                          className="transition hover:bg-slate-50/70 dark:hover:bg-white/5"
+                          className="transition hover:bg-[#F8FAFC]/80 dark:hover:bg-white/5"
                         >
                           <TableCell className="font-medium">
                             {p.job?.company?.name ?? "—"}
@@ -258,7 +258,7 @@ export default function Finance() {
                               onValueChange={(v) => updateBillingStatus(p.id, v)}
                               disabled={savingId === p.id}
                             >
-                              <SelectTrigger className="h-10 w-[160px] rounded-xl bg-white/70 dark:bg-white/5">
+                              <SelectTrigger className="h-10 w-[160px] rounded-xl bg-white/70 ring-1 ring-slate-200 dark:bg-white/5 dark:ring-white/10">
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
@@ -268,7 +268,7 @@ export default function Finance() {
                               </SelectContent>
                             </Select>
                             <div className="mt-2">
-                              <Badge className="rounded-full bg-white text-slate-700 ring-1 ring-black/5 dark:bg-white/10 dark:text-slate-200 dark:ring-white/10">
+                              <Badge className="rounded-full bg-white/60 text-slate-700 ring-1 ring-slate-200 dark:bg-white/10 dark:text-slate-200 dark:ring-white/10">
                                 {p.fee_percentage}% de {formatBRL(p.salary_offered ?? 0)}
                               </Badge>
                             </div>

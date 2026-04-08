@@ -1,8 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
-import { z } from "zod";
-import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
+import { useMemo, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -12,129 +11,101 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { supabase } from "@/integrations/supabase/client";
+import { Badge } from "@/components/ui/badge";
 
-const schema = z.object({
-  company_id: z.string().uuid({ message: "Selecione uma empresa" }),
-  title: z.string().min(2, "Informe um título"),
-  description: z.string().optional(),
-  salary_range: z.string().optional(),
-  requirements_text: z.string().optional(),
-  status: z.enum(["OPEN", "CLOSED"]),
-});
-
-type Props = {
-  companies: { id: string; name: string }[];
-  onCreated?: () => void;
+type Company = {
+  id: string;
+  name: string;
 };
 
-function parseCsvToSkills(value: string) {
-  return value
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean);
-}
+type Props = {
+  companies: Company[];
+  onCreated: () => void;
+};
 
 export function hr_NewJobForm({ companies, onCreated }: Props) {
-  const [companyId, setCompanyId] = useState<string>(companies[0]?.id ?? "");
+  const queryClient = useQueryClient();
+
+  const [companyId, setCompanyId] = useState<string | null>(null);
   const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
   const [salaryRange, setSalaryRange] = useState("");
-  const [requirementsText, setRequirementsText] = useState("");
-  const [status, setStatus] = useState<"OPEN" | "CLOSED">("OPEN");
-  const [isSaving, setIsSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [description, setDescription] = useState("");
+  const [requirementsCsv, setRequirementsCsv] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
-  const isDisabled = useMemo(() => companies.length === 0, [companies.length]);
+  const normalizedRequirements = useMemo(() => {
+    return requirementsCsv
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+  }, [requirementsCsv]);
 
-  useEffect(() => {
-    if (!companyId && companies[0]?.id) setCompanyId(companies[0].id);
-  }, [companies, companyId]);
-
-  async function handleCreate() {
-    setError(null);
-
-    const parsed = schema.safeParse({
-      company_id: companyId,
-      title,
-      description: description || undefined,
-      salary_range: salaryRange || undefined,
-      requirements_text: requirementsText || undefined,
-      status,
-    });
-
-    if (!parsed.success) {
-      setError(parsed.error.issues[0]?.message ?? "Dados inválidos");
-      return;
-    }
-
-    setIsSaving(true);
+  async function createJob() {
+    setSubmitting(true);
     try {
       const { data: tenantId, error: tenantErr } = await supabase.rpc(
         "get_hr_tenant"
       );
       if (tenantErr) throw tenantErr;
-      if (!tenantId) throw new Error("Tenant não encontrado para este usuário.");
 
-      const requirements = parsed.data.requirements_text
-        ? parseCsvToSkills(parsed.data.requirements_text)
-        : [];
-
-      const { error: insertErr } = await supabase.from("hr_jobs").insert({
-        tenant_id: tenantId,
-        company_id: parsed.data.company_id,
-        title: parsed.data.title,
-        description: parsed.data.description ?? null,
-        salary_range: parsed.data.salary_range ?? null,
-        requirements,
-        status: parsed.data.status,
+      const { error } = await supabase.from("hr_jobs").insert({
+        tenant_id: tenantId as string,
+        company_id: companyId,
+        title,
+        salary_range: salaryRange || null,
+        description: description || null,
+        requirements: normalizedRequirements,
+        status: "OPEN",
       });
-      if (insertErr) throw insertErr;
 
+      if (error) throw error;
+
+      setCompanyId(null);
       setTitle("");
-      setDescription("");
       setSalaryRange("");
-      setRequirementsText("");
-      setStatus("OPEN");
-      onCreated?.();
-    } catch (e: any) {
-      setError(e?.message ?? String(e));
+      setDescription("");
+      setRequirementsCsv("");
+
+      queryClient.invalidateQueries({ queryKey: ["hr_jobs"] });
+      onCreated();
     } finally {
-      setIsSaving(false);
+      setSubmitting(false);
     }
   }
 
   return (
-    <Card className="rounded-3xl border-black/5 bg-white/80 p-5 shadow-xl shadow-slate-900/5 backdrop-blur">
-      <div className="flex items-end justify-between gap-3">
+    <Card className="rounded-[28px] p-5 hr-glass">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h2 className="text-base font-semibold text-slate-900">
-            Nova vaga (hr_jobs)
-          </h2>
-          <p className="text-sm text-slate-600">
-            Salva a vaga com o <span className="font-medium">tenant_id</span> do
-            usuário logado.
+          <div className="inline-flex items-center gap-2 rounded-full bg-[hsl(var(--primary))]/10 px-3 py-1 text-xs font-semibold text-[hsl(var(--primary))] ring-1 ring-[hsl(var(--primary))]/15 dark:bg-[hsl(var(--primary))]/15 dark:text-white">
+            Criar vaga
+            <Badge className="rounded-full bg-[#FB923C]/10 text-[#FB923C] ring-1 ring-[#FB923C]/15 dark:bg-[#FB923C]/15">
+              rápido
+            </Badge>
+          </div>
+          <h2 className="mt-3 text-base font-semibold">Nova vaga</h2>
+          <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+            Requirements viram o "Raio‑X" do Matchmaker automaticamente.
           </p>
         </div>
+
+        <Button
+          className="h-11 rounded-xl hr-btn-primary"
+          disabled={submitting || !companyId || !title}
+          onClick={createJob}
+        >
+          {submitting ? "Criando…" : "Criar vaga"}
+        </Button>
       </div>
 
-      {isDisabled ? (
-        <div className="mt-4 rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-900 ring-1 ring-amber-200">
-          Você ainda não tem empresas em <span className="font-mono">hr_companies</span>.
-          Crie uma empresa para cadastrar vagas.
-        </div>
-      ) : null}
-
-      {error ? (
-        <div className="mt-4 rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-800 ring-1 ring-rose-200">
-          {error}
-        </div>
-      ) : null}
-
-      <div className="mt-4 grid gap-3 sm:grid-cols-2">
-        <div className="space-y-2">
-          <div className="text-xs font-semibold text-slate-700">Empresa</div>
-          <Select value={companyId} onValueChange={setCompanyId}>
-            <SelectTrigger className="h-11 rounded-2xl bg-white/80">
+      <div className="mt-5 grid gap-3 sm:grid-cols-2">
+        <div>
+          <div className="mb-2 text-xs font-semibold text-slate-600 dark:text-slate-300">
+            Empresa
+          </div>
+          <Select value={companyId ?? ""} onValueChange={(v) => setCompanyId(v)}>
+            <SelectTrigger className="h-11 rounded-2xl bg-white/70 ring-1 ring-slate-200 backdrop-blur-md dark:bg-white/5 dark:ring-white/10">
               <SelectValue placeholder="Selecione" />
             </SelectTrigger>
             <SelectContent>
@@ -147,72 +118,63 @@ export function hr_NewJobForm({ companies, onCreated }: Props) {
           </Select>
         </div>
 
-        <div className="space-y-2">
-          <div className="text-xs font-semibold text-slate-700">Status</div>
-          <Select value={status} onValueChange={(v) => setStatus(v as any)}>
-            <SelectTrigger className="h-11 rounded-2xl bg-white/80">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="OPEN">OPEN</SelectItem>
-              <SelectItem value="CLOSED">CLOSED</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-2 sm:col-span-2">
-          <div className="text-xs font-semibold text-slate-700">Título</div>
-          <Input
-            className="h-11 rounded-2xl bg-white/80"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="Ex: Pessoa Desenvolvedora Fullstack"
-          />
-        </div>
-
-        <div className="space-y-2 sm:col-span-2">
-          <div className="text-xs font-semibold text-slate-700">Descrição</div>
-          <Textarea
-            className="min-h-[110px] rounded-2xl bg-white/80"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="Principais responsabilidades, requisitos, etc."
-          />
-        </div>
-
-        <div className="space-y-2 sm:col-span-2">
-          <div className="text-xs font-semibold text-slate-700">
-            Requisitos técnicos (separe por vírgula)
+        <div>
+          <div className="mb-2 text-xs font-semibold text-slate-600 dark:text-slate-300">
+            Título
           </div>
           <Input
-            className="h-11 rounded-2xl bg-white/80"
-            value={requirementsText}
-            onChange={(e) => setRequirementsText(e.target.value)}
-            placeholder="Ex: react, typescript, node, postgres"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            className="h-11 rounded-2xl bg-white/70 ring-1 ring-slate-200 backdrop-blur-md dark:bg-white/5 dark:ring-white/10"
+            placeholder="Ex: Senior Frontend"
           />
         </div>
 
-        <div className="space-y-2 sm:col-span-2">
-          <div className="text-xs font-semibold text-slate-700">
+        <div>
+          <div className="mb-2 text-xs font-semibold text-slate-600 dark:text-slate-300">
             Faixa salarial
           </div>
           <Input
-            className="h-11 rounded-2xl bg-white/80"
             value={salaryRange}
             onChange={(e) => setSalaryRange(e.target.value)}
-            placeholder="Ex: R$ 12k–18k"
+            className="h-11 rounded-2xl bg-white/70 ring-1 ring-slate-200 backdrop-blur-md dark:bg-white/5 dark:ring-white/10"
+            placeholder="Ex: R$ 18k – 25k"
           />
+        </div>
+
+        <div>
+          <div className="mb-2 text-xs font-semibold text-slate-600 dark:text-slate-300">
+            Requirements (CSV)
+          </div>
+          <Input
+            value={requirementsCsv}
+            onChange={(e) => setRequirementsCsv(e.target.value)}
+            className="h-11 rounded-2xl bg-white/70 ring-1 ring-slate-200 backdrop-blur-md dark:bg-white/5 dark:ring-white/10"
+            placeholder="Ex: React, TypeScript, Supabase, UX, Testing"
+          />
+          <div className="mt-2 flex flex-wrap gap-2">
+            {normalizedRequirements.slice(0, 6).map((r) => (
+              <Badge
+                key={r}
+                className="rounded-full bg-white/60 text-slate-700 ring-1 ring-slate-200 dark:bg-white/10 dark:text-slate-200 dark:ring-white/10"
+              >
+                {r}
+              </Badge>
+            ))}
+          </div>
         </div>
       </div>
 
-      <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:justify-end">
-        <Button
-          className="h-11 rounded-2xl bg-indigo-600 text-white hover:bg-indigo-700"
-          onClick={handleCreate}
-          disabled={isDisabled || isSaving}
-        >
-          {isSaving ? "Salvando…" : "Criar vaga"}
-        </Button>
+      <div className="mt-4">
+        <div className="mb-2 text-xs font-semibold text-slate-600 dark:text-slate-300">
+          Descrição
+        </div>
+        <Textarea
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          className="min-h-[110px] rounded-2xl bg-white/70 ring-1 ring-slate-200 backdrop-blur-md dark:bg-white/5 dark:ring-white/10"
+          placeholder="Contexto, responsabilidades, stack, etc."
+        />
       </div>
     </Card>
   );

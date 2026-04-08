@@ -48,14 +48,14 @@ export default function Login() {
   }, [currentTheme]);
 
   return (
-    <div className="min-h-screen bg-slate-50 px-4 py-10 text-slate-900 dark:bg-[#0B1020] dark:text-slate-100">
+    <div className="min-h-screen bg-white px-4 py-10 text-slate-900 dark:bg-[#020617] dark:text-slate-100">
       <div className="mx-auto w-full max-w-md">
         <div className="mb-8 text-center">
           <div className="relative mx-auto mb-5 inline-flex items-center justify-center">
             {/* Dark-mode glow behind the logo */}
-            <div className="pointer-events-none absolute -inset-10 hidden rounded-full bg-[radial-gradient(circle_at_center,rgba(34,211,238,0.22),rgba(99,102,241,0.18),transparent_60%)] blur-2xl dark:block" />
+            <div className="pointer-events-none absolute -inset-12 hidden rounded-full bg-[radial-gradient(circle_at_center,rgba(34,211,238,0.22),rgba(124,58,237,0.18),transparent_60%)] blur-2xl dark:block" />
 
-            <div className="relative rounded-3xl border border-black/5 bg-white/70 px-6 py-4 shadow-sm backdrop-blur dark:border-white/10 dark:bg-white/5">
+            <div className="relative rounded-3xl px-6 py-4 hr-glass">
               <HrLogo size="lg" />
             </div>
           </div>
@@ -73,7 +73,7 @@ export default function Login() {
           </p>
         </div>
 
-        <Card className="rounded-3xl border-black/5 bg-white/80 p-6 shadow-xl shadow-slate-900/5 backdrop-blur dark:border-white/10 dark:bg-white/5 dark:shadow-none">
+        <Card className="rounded-3xl p-6 hr-glass">
           <Auth
             supabaseClient={supabase}
             providers={[]}

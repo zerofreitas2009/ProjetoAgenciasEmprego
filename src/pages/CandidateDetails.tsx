@@ -116,7 +116,7 @@ export default function CandidateDetails() {
   return (
     <Layout>
       <div className="space-y-4">
-        <Card className="rounded-3xl border-black/5 bg-white/70 p-6 shadow-sm backdrop-blur dark:border-white/10 dark:bg-white/5">
+        <Card className="rounded-[28px] p-6 hr-glass">
           {candidateQuery.isFetching ? (
             <div className="space-y-3">
               <Skeleton className="h-7 w-1/2 rounded-xl" />
@@ -131,7 +131,7 @@ export default function CandidateDetails() {
             <div>
               <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                 <div className="flex items-start gap-3">
-                  <div className="mt-0.5 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-white/70 ring-1 ring-black/5 dark:bg-white/10 dark:ring-white/10">
+                  <div className="mt-0.5 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-white/60 ring-1 ring-slate-200 dark:bg-white/10 dark:ring-white/10">
                     <UserRound className="h-5 w-5" />
                   </div>
                   <div>
@@ -142,10 +142,10 @@ export default function CandidateDetails() {
                       {candidate.email}
                     </p>
                     <div className="mt-2 flex flex-wrap gap-2">
-                      <Badge className="rounded-full bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))]">
+                      <Badge className="rounded-full bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))] shadow-lg shadow-violet-500/15">
                         {candidate.status}
                       </Badge>
-                      <Badge className="rounded-full bg-white text-slate-700 ring-1 ring-black/5 dark:bg-white/10 dark:text-slate-200 dark:ring-white/10">
+                      <Badge className="rounded-full bg-white/60 text-slate-700 ring-1 ring-slate-200 dark:bg-white/10 dark:text-slate-200 dark:ring-white/10">
                         {new Date(candidate.created_at).toLocaleDateString()}
                       </Badge>
                     </div>
@@ -153,7 +153,7 @@ export default function CandidateDetails() {
                 </div>
 
                 <Button
-                  className="h-11 rounded-xl bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))] shadow-sm hover:opacity-95"
+                  className="h-11 rounded-xl hr-btn-primary"
                   onClick={openResume}
                   disabled={!candidate.resume_url || isOpening}
                 >
@@ -167,16 +167,16 @@ export default function CandidateDetails() {
               </div>
 
               <div className="mt-6 grid gap-3 sm:grid-cols-2">
-                <div className="rounded-2xl bg-white/60 p-4 ring-1 ring-black/5 dark:bg-white/5 dark:ring-white/10">
+                <div className="rounded-3xl bg-white/60 p-4 ring-1 ring-slate-200 dark:bg-white/5 dark:ring-white/10">
                   <div className="text-xs font-semibold text-slate-600 dark:text-slate-300">
                     Skills
                   </div>
-                  <pre className="mt-2 overflow-auto rounded-2xl bg-white/70 p-3 text-xs text-slate-700 ring-1 ring-black/5 dark:bg-white/5 dark:text-slate-200 dark:ring-white/10">
+                  <pre className="mt-2 overflow-auto rounded-3xl bg-white/70 p-3 text-xs text-slate-700 ring-1 ring-slate-200 dark:bg-white/5 dark:text-slate-200 dark:ring-white/10">
                     {JSON.stringify(candidate.skills ?? [], null, 2)}
                   </pre>
                 </div>
 
-                <div className="rounded-2xl bg-white/60 p-4 ring-1 ring-black/5 dark:bg-white/5 dark:ring-white/10">
+                <div className="rounded-3xl bg-white/60 p-4 ring-1 ring-slate-200 dark:bg-white/5 dark:ring-white/10">
                   <div className="text-xs font-semibold text-slate-600 dark:text-slate-300">
                     Storage path
                   </div>
@@ -189,10 +189,10 @@ export default function CandidateDetails() {
           ) : null}
         </Card>
 
-        <Card className="rounded-3xl border-black/5 bg-white/70 p-5 shadow-sm backdrop-blur dark:border-white/10 dark:bg-white/5">
+        <Card className="rounded-[28px] p-5 hr-glass">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <div className="inline-flex items-center gap-2 rounded-full bg-white/70 px-3 py-1 text-xs font-semibold text-slate-700 ring-1 ring-black/5 dark:bg-white/10 dark:text-slate-200 dark:ring-white/10">
+              <div className="inline-flex items-center gap-2 rounded-full bg-white/60 px-3 py-1 text-xs font-semibold text-slate-700 ring-1 ring-slate-200 dark:bg-white/10 dark:text-slate-200 dark:ring-white/10">
                 <ClipboardCheck className="h-4 w-4" />
                 Onboarding
               </div>
@@ -208,10 +208,10 @@ export default function CandidateDetails() {
             </div>
           </div>
 
-          <div className="mt-4 overflow-hidden rounded-2xl ring-1 ring-black/5 dark:ring-white/10">
+          <div className="mt-4 overflow-hidden rounded-2xl ring-1 ring-slate-200 dark:ring-white/10">
             <Table>
               <TableHeader>
-                <TableRow className="bg-slate-50/70 dark:bg-white/5">
+                <TableRow className="bg-[#F8FAFC]/80 dark:bg-white/5">
                   <TableHead className="text-slate-600 dark:text-slate-300">
                     Documento
                   </TableHead>
@@ -253,7 +253,7 @@ export default function CandidateDetails() {
                   (documentsQuery.data ?? []).map((d) => (
                     <TableRow
                       key={d.id}
-                      className="transition hover:bg-slate-50/70 dark:hover:bg-white/5"
+                      className="transition hover:bg-[#F8FAFC]/80 dark:hover:bg-white/5"
                     >
                       <TableCell className="font-medium">
                         {d.document_type}
@@ -264,7 +264,7 @@ export default function CandidateDetails() {
                           onValueChange={(v) => updateDocStatus(d.id, v)}
                           disabled={savingDocId === d.id}
                         >
-                          <SelectTrigger className="h-10 w-[170px] rounded-xl bg-white/70 dark:bg-white/5">
+                          <SelectTrigger className="h-10 w-[170px] rounded-xl bg-white/70 ring-1 ring-slate-200 dark:bg-white/5 dark:ring-white/10">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>

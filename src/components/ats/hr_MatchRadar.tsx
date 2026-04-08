@@ -43,7 +43,6 @@ function normalizeRequirements(input: unknown): string[] {
     }
   }
 
-  // Unique, keep order
   return Array.from(new Set(out.map((s) => s.trim()).filter(Boolean)));
 }
 
@@ -53,10 +52,6 @@ function candidateSkillLevel(skills: unknown, targetSkill: string): number {
 
   if (!Array.isArray(skills)) return 0;
 
-  // Common formats:
-  // ["React", "TypeScript"]
-  // [{ name: "React", level: 80 }]
-  // [{ skill: "React", proficiency: 3 }]
   for (const raw of skills) {
     if (typeof raw === "string") {
       if (raw.trim().toLowerCase() === t) return 70;
@@ -74,7 +69,6 @@ function candidateSkillLevel(skills: unknown, targetSkill: string): number {
 
       const proficiency = anyRaw.proficiency;
       if (typeof proficiency === "number") {
-        // If stored as 1–5, map to 20–100
         if (proficiency >= 0 && proficiency <= 5)
           return clamp01to100(proficiency * 20);
         return clamp01to100(proficiency);
@@ -133,7 +127,7 @@ export function hr_MatchRadar({ jobId, candidateId }: Props) {
   const colors = useMemo(() => {
     if (currentTheme === "dark") {
       return {
-        axis: "rgba(226,232,240,0.80)",
+        axis: "rgba(226,232,240,0.86)",
         grid: "rgba(255,255,255,0.10)",
         fill: "url(#neonFill)",
         stroke: "url(#neonStroke)",
@@ -141,15 +135,15 @@ export function hr_MatchRadar({ jobId, candidateId }: Props) {
     }
 
     return {
-      axis: "rgba(30,41,59,0.70)",
-      grid: "rgba(2,6,23,0.08)",
-      fill: "rgba(37,99,235,0.18)",
-      stroke: "rgba(37,99,235,0.85)",
+      axis: "rgba(30,41,59,0.75)",
+      grid: "rgba(15,23,42,0.08)",
+      fill: "rgba(29,78,216,0.18)",
+      stroke: "rgba(29,78,216,0.90)",
     };
   }, [currentTheme]);
 
   return (
-    <Card className="rounded-3xl border-black/5 bg-white/70 p-5 shadow-sm backdrop-blur dark:border-white/10 dark:bg-white/5">
+    <Card className="rounded-[28px] p-5 hr-glass">
       <div className="flex items-end justify-between gap-3">
         <div>
           <div className="text-xs font-semibold text-slate-600 dark:text-slate-300">
@@ -170,11 +164,10 @@ export function hr_MatchRadar({ jobId, candidateId }: Props) {
             ) : (
               <>Candidato: {candidateQuery.data?.full_name ?? "—"}</>
             )}
-
           </p>
         </div>
 
-        <div className="rounded-full bg-white/60 px-3 py-1 text-xs font-semibold text-slate-700 ring-1 ring-black/5 dark:bg-white/10 dark:text-slate-200 dark:ring-white/10">
+        <div className="rounded-full bg-white/60 px-3 py-1 text-xs font-semibold text-slate-700 ring-1 ring-slate-200 dark:bg-white/10 dark:text-slate-200 dark:ring-white/10">
           5 skills
         </div>
       </div>
@@ -183,7 +176,7 @@ export function hr_MatchRadar({ jobId, candidateId }: Props) {
         {jobQuery.isFetching || candidateQuery.isFetching ? (
           <Skeleton className="h-full w-full rounded-3xl" />
         ) : chartData.length === 0 ? (
-          <div className="flex h-full items-center justify-center rounded-3xl bg-white/60 text-sm text-slate-600 ring-1 ring-black/5 dark:bg-white/5 dark:text-slate-300 dark:ring-white/10">
+          <div className="flex h-full items-center justify-center rounded-3xl bg-white/60 text-sm text-slate-600 ring-1 ring-slate-200 dark:bg-white/5 dark:text-slate-300 dark:ring-white/10">
             A vaga ainda não tem requirements.
           </div>
         ) : (
@@ -191,12 +184,12 @@ export function hr_MatchRadar({ jobId, candidateId }: Props) {
             <RadarChart data={chartData} outerRadius={95}>
               <defs>
                 <linearGradient id="neonFill" x1="0" y1="0" x2="1" y2="1">
-                  <stop offset="0%" stopColor="#22d3ee" stopOpacity={0.20} />
-                  <stop offset="100%" stopColor="#a78bfa" stopOpacity={0.20} />
+                  <stop offset="0%" stopColor="#22d3ee" stopOpacity={0.22} />
+                  <stop offset="100%" stopColor="#7C3AED" stopOpacity={0.22} />
                 </linearGradient>
                 <linearGradient id="neonStroke" x1="0" y1="0" x2="1" y2="1">
                   <stop offset="0%" stopColor="#22d3ee" stopOpacity={0.95} />
-                  <stop offset="100%" stopColor="#a78bfa" stopOpacity={0.95} />
+                  <stop offset="100%" stopColor="#7C3AED" stopOpacity={0.95} />
                 </linearGradient>
               </defs>
 
@@ -205,12 +198,7 @@ export function hr_MatchRadar({ jobId, candidateId }: Props) {
                 dataKey="skill"
                 tick={{ fill: colors.axis, fontSize: 11 }}
               />
-              <PolarRadiusAxis
-                angle={30}
-                domain={[0, 100]}
-                tick={false}
-                axisLine={false}
-              />
+              <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
 
               <Radar
                 name="Candidato"
@@ -226,7 +214,7 @@ export function hr_MatchRadar({ jobId, candidateId }: Props) {
                 contentStyle={{
                   borderRadius: 14,
                   border: "1px solid rgba(0,0,0,0.08)",
-                  boxShadow: "0 8px 24px rgba(15,23,42,0.10)",
+                  boxShadow: "0 12px 32px rgba(15,23,42,0.10)",
                 }}
                 formatter={(v: any) => [`${v}%`, "Nível"]}
               />
@@ -239,7 +227,7 @@ export function hr_MatchRadar({ jobId, candidateId }: Props) {
         {chartData.map((d) => (
           <div
             key={d.skill}
-            className="flex items-center justify-between rounded-2xl bg-white/60 px-3 py-2 text-sm ring-1 ring-black/5 dark:bg-white/5 dark:ring-white/10"
+            className="flex items-center justify-between rounded-2xl bg-white/60 px-3 py-2 text-sm ring-1 ring-slate-200 dark:bg-white/5 dark:ring-white/10"
           >
             <span className="truncate text-slate-700 dark:text-slate-200">
               {d.skill}
