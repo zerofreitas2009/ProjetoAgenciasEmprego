@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { hr_Logo as HrLogo } from "@/components/hr_Logo";
 
 export default function Index() {
   return (
@@ -12,10 +13,9 @@ export default function Index() {
         <header className="flex items-center justify-between gap-3">
           <Link
             to="/"
-            className="group inline-flex items-center gap-2 rounded-xl border border-black/5 bg-white/70 px-3 py-2 text-sm font-semibold tracking-tight text-slate-900 shadow-sm backdrop-blur transition hover:bg-white dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
+            className="group inline-flex items-center gap-2 rounded-xl border border-black/5 bg-white/70 px-3 py-2 shadow-sm backdrop-blur transition hover:bg-white dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
           >
-            <span className="h-2.5 w-2.5 rounded-full bg-[hsl(var(--primary))] transition group-hover:scale-110" />
-            HR SaaS
+            <HrLogo size="sm" />
           </Link>
 
           <div className="flex items-center gap-2">

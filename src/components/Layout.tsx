@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/auth/SessionProvider";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { hr_Logo as HrLogo } from "@/components/hr_Logo";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -135,12 +136,11 @@ export function Layout({ children }: PropsWithChildren) {
             <Link
               to="/"
               className={cn(
-                "flex items-center gap-2 rounded-xl px-2 py-2 text-sm font-semibold tracking-tight text-slate-900 hover:bg-slate-100 dark:text-white dark:hover:bg-white/10",
+                "flex items-center gap-2 rounded-xl px-2 py-2 text-sm font-semibold tracking-tight hover:bg-slate-100 dark:hover:bg-white/10",
                 collapsed && "justify-center"
               )}
             >
-              <span className="h-2.5 w-2.5 rounded-full bg-[hsl(var(--primary))]" />
-              {collapsed ? null : <span>HR SaaS</span>}
+              <HrLogo size="sm" withText={!collapsed} />
             </Link>
 
             <button
@@ -186,7 +186,9 @@ export function Layout({ children }: PropsWithChildren) {
                 </SheetTrigger>
                 <SheetContent side="left" className="w-[300px]">
                   <SheetHeader>
-                    <SheetTitle>HR SaaS</SheetTitle>
+                    <SheetTitle>
+                      <HrLogo size="md" />
+                    </SheetTitle>
                   </SheetHeader>
                   <NavLinks
                     items={navItems}
@@ -194,6 +196,14 @@ export function Layout({ children }: PropsWithChildren) {
                   />
                 </SheetContent>
               </Sheet>
+
+              <Link
+                to="/"
+                className="inline-flex items-center rounded-xl border border-black/5 bg-white/70 px-2.5 py-2 shadow-sm backdrop-blur transition hover:bg-white dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
+                title="Home"
+              >
+                <HrLogo size="sm" withText={false} />
+              </Link>
 
               <div className="rounded-xl border border-black/5 bg-white/70 px-3 py-2 text-sm font-semibold text-slate-900 shadow-sm backdrop-blur dark:border-white/10 dark:bg-white/5 dark:text-white">
                 {pageLabel}

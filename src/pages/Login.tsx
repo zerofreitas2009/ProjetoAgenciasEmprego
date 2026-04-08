@@ -1,70 +1,88 @@
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Auth } from "@supabase/auth-ui-react";
 import { ThemeSupa } from "@supabase/auth-ui-shared";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/auth/SessionProvider";
 import { Card } from "@/components/ui/card";
+import { hr_Logo as HrLogo } from "@/components/hr_Logo";
+import { useTheme } from "next-themes";
 
 export default function Login() {
   const navigate = useNavigate();
   const { session } = useSession();
+  const { theme, resolvedTheme } = useTheme();
+  const currentTheme = theme === "system" ? resolvedTheme : theme;
 
   useEffect(() => {
     if (session) navigate("/dashboard", { replace: true });
   }, [navigate, session]);
 
+  const authAppearance = useMemo(() => {
+    const isDark = currentTheme === "dark";
+
+    return {
+      theme: ThemeSupa,
+      style: {
+        button: {
+          borderRadius: "14px",
+          padding: "12px 14px",
+          fontWeight: 600,
+        },
+        input: {
+          borderRadius: "14px",
+          padding: "12px 14px",
+        },
+        label: {
+          fontSize: "13px",
+          color: isDark ? "rgba(226,232,240,0.90)" : "#334155",
+        },
+        message: {
+          borderRadius: "14px",
+        },
+        container: {
+          gap: "14px",
+        },
+      },
+    };
+  }, [currentTheme]);
+
   return (
-    <div className="min-h-screen bg-[hsl(var(--app-bg))] px-4 py-10">
+    <div className="min-h-screen bg-slate-50 px-4 py-10 text-slate-900 dark:bg-[#0B1020] dark:text-slate-100">
       <div className="mx-auto w-full max-w-md">
         <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 inline-flex items-center justify-center rounded-2xl bg-white/70 px-4 py-2 shadow-sm ring-1 ring-black/5">
-            <span className="text-sm font-semibold tracking-wide text-slate-700">
-              HR SaaS
-            </span>
+          <div className="relative mx-auto mb-5 inline-flex items-center justify-center">
+            {/* Dark-mode glow behind the logo */}
+            <div className="pointer-events-none absolute -inset-10 hidden rounded-full bg-[radial-gradient(circle_at_center,rgba(34,211,238,0.22),rgba(99,102,241,0.18),transparent_60%)] blur-2xl dark:block" />
+
+            <div className="relative rounded-3xl border border-black/5 bg-white/70 px-6 py-4 shadow-sm backdrop-blur dark:border-white/10 dark:bg-white/5">
+              <HrLogo size="lg" />
+            </div>
           </div>
-          <h1 className="text-balance text-3xl font-semibold tracking-tight text-slate-900">
+
+          <p className="mx-auto max-w-sm text-pretty text-sm leading-relaxed text-slate-600 dark:text-slate-300">
+            Recrutamento de alta precisão, de ponta a ponta.
+          </p>
+
+          <h1 className="mt-6 text-balance text-3xl font-semibold tracking-tight">
             Acesse seu painel
           </h1>
-          <p className="mt-2 text-sm leading-relaxed text-slate-600">
+          <p className="mt-2 text-sm leading-relaxed text-slate-600 dark:text-slate-300">
             Entre com seu e-mail para criar sua conta. Um tenant e um perfil serão
             gerados automaticamente.
           </p>
         </div>
 
-        <Card className="rounded-3xl border-black/5 bg-white/80 p-6 shadow-xl shadow-slate-900/5 backdrop-blur">
+        <Card className="rounded-3xl border-black/5 bg-white/80 p-6 shadow-xl shadow-slate-900/5 backdrop-blur dark:border-white/10 dark:bg-white/5 dark:shadow-none">
           <Auth
             supabaseClient={supabase}
             providers={[]}
-            appearance={{
-              theme: ThemeSupa,
-              style: {
-                button: {
-                  borderRadius: "14px",
-                  padding: "12px 14px",
-                  fontWeight: 600,
-                },
-                input: {
-                  borderRadius: "14px",
-                  padding: "12px 14px",
-                },
-                label: {
-                  fontSize: "13px",
-                  color: "#334155",
-                },
-                message: {
-                  borderRadius: "14px",
-                },
-                container: {
-                  gap: "14px",
-                },
-              },
-            }}
-            theme="light"
+            appearance={authAppearance}
+            theme={currentTheme === "dark" ? "dark" : "light"}
           />
         </Card>
 
-        <p className="mt-6 text-center text-xs text-slate-500">
+        <p className="mt-6 text-center text-xs text-slate-500 dark:text-slate-400">
           Ao entrar, você aceita os termos e políticas da sua organização.
         </p>
       </div>
