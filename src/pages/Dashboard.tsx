@@ -187,7 +187,7 @@ export default function Dashboard() {
       const { data, error } = await supabase
         .from("hr_applications")
         .select(
-          "id, current_stage, feedback_notes, status, candidate:hr_candidates!hr_applications_candidate_id_fkey(id, full_name, email, status, skills)"
+          "id, current_stage, feedback_notes, status, updated_at, status_changed_at, candidate:hr_candidates!hr_applications_candidate_id_fkey(id, full_name, email, status, skills)"
         )
         .eq("job_id", selectedJobId as string);
 
@@ -448,6 +448,7 @@ export default function Dashboard() {
                   </Card>
 
                   <HrPipelineView
+                    jobId={selectedJob.id}
                     jobTitle={selectedJob.title}
                     jobRequirements={selectedJob.requirements}
                     applications={applicationsQuery.data ?? []}
