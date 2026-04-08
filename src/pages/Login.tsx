@@ -1,10 +1,12 @@
 import { useEffect, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
 import { Auth } from "@supabase/auth-ui-react";
 import { ThemeSupa } from "@supabase/auth-ui-shared";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/auth/SessionProvider";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { hr_Logo as HrLogo } from "@/components/hr_Logo";
 import { useTheme } from "next-themes";
 
@@ -87,6 +89,19 @@ export default function Login() {
   return (
     <div className="min-h-screen bg-white px-4 py-10 text-slate-900 dark:bg-[#020617] dark:text-slate-100">
       <div className="mx-auto w-full max-w-md">
+        <div className="mb-6 flex items-center justify-start">
+          <Button
+            variant="secondary"
+            className="h-10 rounded-xl hr-btn-secondary"
+            asChild
+          >
+            <Link to="/">
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Voltar para a Home
+            </Link>
+          </Button>
+        </div>
+
         <div className="mb-8 text-center">
           <div className="relative mx-auto mb-5 inline-flex items-center justify-center">
             {/* Dark-mode glow behind the logo */}
