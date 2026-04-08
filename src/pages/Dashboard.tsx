@@ -311,7 +311,12 @@ export default function Dashboard() {
                       candidateRows.map((c) => (
                         <TableRow key={c.id} className="hover:bg-slate-50/70">
                           <TableCell className="font-medium text-slate-900">
-                            {c.full_name}
+                            <Link
+                              to={`/candidates/${c.id}`}
+                              className="underline decoration-slate-300 underline-offset-4 hover:decoration-slate-500"
+                            >
+                              {c.full_name}
+                            </Link>
                           </TableCell>
                           <TableCell className="text-slate-700">{c.email}</TableCell>
                           <TableCell>
