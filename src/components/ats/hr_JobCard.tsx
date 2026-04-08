@@ -8,6 +8,7 @@ export type HrJob = {
   title: string;
   description: string | null;
   salary_range: string | null;
+  requirements?: unknown;
   status: "OPEN" | "CLOSED" | string;
   created_at: string;
   company?: { name: string } | null;

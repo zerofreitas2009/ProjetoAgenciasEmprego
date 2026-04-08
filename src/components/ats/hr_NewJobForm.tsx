@@ -18,6 +18,7 @@ const schema = z.object({
   title: z.string().min(2, "Informe um título"),
   description: z.string().optional(),
   salary_range: z.string().optional(),
+  requirements_text: z.string().optional(),
   status: z.enum(["OPEN", "CLOSED"]),
 });
 
@@ -26,11 +27,19 @@ type Props = {
   onCreated?: () => void;
 };
 
+function parseCsvToSkills(value: string) {
+  return value
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
 export function hr_NewJobForm({ companies, onCreated }: Props) {
   const [companyId, setCompanyId] = useState<string>(companies[0]?.id ?? "");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [salaryRange, setSalaryRange] = useState("");
+  const [requirementsText, setRequirementsText] = useState("");
   const [status, setStatus] = useState<"OPEN" | "CLOSED">("OPEN");
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -49,6 +58,7 @@ export function hr_NewJobForm({ companies, onCreated }: Props) {
       title,
       description: description || undefined,
       salary_range: salaryRange || undefined,
+      requirements_text: requirementsText || undefined,
       status,
     });
 
@@ -59,12 +69,15 @@ export function hr_NewJobForm({ companies, onCreated }: Props) {
 
     setIsSaving(true);
     try {
-      // Tenant is resolved server-side by get_hr_tenant(); we fetch it and attach to the row.
       const { data: tenantId, error: tenantErr } = await supabase.rpc(
         "get_hr_tenant"
       );
       if (tenantErr) throw tenantErr;
       if (!tenantId) throw new Error("Tenant não encontrado para este usuário.");
+
+      const requirements = parsed.data.requirements_text
+        ? parseCsvToSkills(parsed.data.requirements_text)
+        : [];
 
       const { error: insertErr } = await supabase.from("hr_jobs").insert({
         tenant_id: tenantId,
@@ -72,6 +85,7 @@ export function hr_NewJobForm({ companies, onCreated }: Props) {
         title: parsed.data.title,
         description: parsed.data.description ?? null,
         salary_range: parsed.data.salary_range ?? null,
+        requirements,
         status: parsed.data.status,
       });
       if (insertErr) throw insertErr;
@@ -79,6 +93,7 @@ export function hr_NewJobForm({ companies, onCreated }: Props) {
       setTitle("");
       setDescription("");
       setSalaryRange("");
+      setRequirementsText("");
       setStatus("OPEN");
       onCreated?.();
     } catch (e: any) {
@@ -162,6 +177,18 @@ export function hr_NewJobForm({ companies, onCreated }: Props) {
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Principais responsabilidades, requisitos, etc."
+          />
+        </div>
+
+        <div className="space-y-2 sm:col-span-2">
+          <div className="text-xs font-semibold text-slate-700">
+            Requisitos técnicos (separe por vírgula)
+          </div>
+          <Input
+            className="h-11 rounded-2xl bg-white/80"
+            value={requirementsText}
+            onChange={(e) => setRequirementsText(e.target.value)}
+            placeholder="Ex: react, typescript, node, postgres"
           />
         </div>
 

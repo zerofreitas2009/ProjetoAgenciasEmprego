@@ -1,31 +1,41 @@
 import { useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { UserRound } from "lucide-react";
+import { hr_matchScore } from "@/lib/hr_match";
+import { Star, UserRound } from "lucide-react";
 
 export type HrApplicationRow = {
   id: string;
   current_stage: string;
   feedback_notes: string | null;
+  status: string;
   candidate: {
     id: string;
     full_name: string;
     email: string;
     status: string;
+    skills: unknown;
   } | null;
 };
 
 type Props = {
   jobTitle: string;
+  jobRequirements: unknown;
   applications: HrApplicationRow[];
+  shortlistedIds: Set<string>;
+  onToggleShortlist: (applicationId: string) => void;
   isLoading?: boolean;
   errorMessage?: string | null;
 };
 
 export function hr_PipelineView({
   jobTitle,
+  jobRequirements,
   applications,
+  shortlistedIds,
+  onToggleShortlist,
   isLoading,
   errorMessage,
 }: Props) {
@@ -39,7 +49,6 @@ export function hr_PipelineView({
 
     const stageList = Array.from(map.keys());
 
-    // A default ordering that matches most ATS pipelines, but keeps custom stages too.
     const preferred = ["Triagem", "Entrevista", "Finalista", "Oferta", "Contratado"];
     stageList.sort((a, b) => {
       const ia = preferred.indexOf(a);
@@ -103,34 +112,80 @@ export function hr_PipelineView({
                 </div>
 
                 <div className="space-y-2">
-                  {list.map((a) => (
-                    <div
-                      key={a.id}
-                      className={cn(
-                        "rounded-2xl bg-white/80 p-3 shadow-sm shadow-slate-900/5 ring-1 ring-black/5",
-                        "transition hover:bg-white"
-                      )}
-                    >
-                      <div className="flex items-start gap-3">
-                        <div className="mt-0.5 inline-flex h-8 w-8 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-700 ring-1 ring-indigo-200">
-                          <UserRound className="h-4 w-4" />
-                        </div>
-                        <div className="min-w-0">
-                          <div className="truncate text-sm font-semibold text-slate-900">
-                            {a.candidate?.full_name ?? "Candidato"}
+                  {list.map((a) => {
+                    const isShortlisted = shortlistedIds.has(a.id);
+                    const score = hr_matchScore(a.candidate?.skills, jobRequirements);
+
+                    return (
+                      <div
+                        key={a.id}
+                        className={cn(
+                          "rounded-2xl bg-white/80 p-3 shadow-sm shadow-slate-900/5 ring-1 ring-black/5",
+                          "transition hover:bg-white"
+                        )}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex items-start gap-3">
+                            <div className="mt-0.5 inline-flex h-8 w-8 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-700 ring-1 ring-indigo-200">
+                              <UserRound className="h-4 w-4" />
+                            </div>
+                            <div className="min-w-0">
+                              <div className="truncate text-sm font-semibold text-slate-900">
+                                {a.candidate?.full_name ?? "Candidato"}
+                              </div>
+                              <div className="truncate text-xs text-slate-600">
+                                {a.candidate?.email ?? ""}
+                              </div>
+
+                              <div className="mt-2 flex flex-wrap gap-2">
+                                <Badge className="rounded-full bg-indigo-50 text-indigo-700 ring-1 ring-indigo-200">
+                                  Match: {score}%
+                                </Badge>
+                                <Badge
+                                  className={
+                                    a.status === "APPROVED"
+                                      ? "rounded-full bg-emerald-600 text-white"
+                                      : a.status === "REJECTED"
+                                        ? "rounded-full bg-rose-600 text-white"
+                                        : "rounded-full bg-slate-200 text-slate-700"
+                                  }
+                                >
+                                  {a.status}
+                                </Badge>
+                              </div>
+
+                              {a.feedback_notes ? (
+                                <p className="mt-2 line-clamp-3 text-xs leading-relaxed text-slate-600">
+                                  {a.feedback_notes}
+                                </p>
+                              ) : null}
+                            </div>
                           </div>
-                          <div className="truncate text-xs text-slate-600">
-                            {a.candidate?.email ?? ""}
-                          </div>
-                          {a.feedback_notes ? (
-                            <p className="mt-2 line-clamp-3 text-xs leading-relaxed text-slate-600">
-                              {a.feedback_notes}
-                            </p>
-                          ) : null}
+
+                          <Button
+                            variant="secondary"
+                            className={cn(
+                              "h-9 rounded-2xl bg-white/70 px-3 ring-1 ring-black/5 hover:bg-white",
+                              isShortlisted && "bg-indigo-600 text-white hover:bg-indigo-700"
+                            )}
+                            onClick={() => onToggleShortlist(a.id)}
+                            title={
+                              isShortlisted
+                                ? "Remover da shortlist"
+                                : "Selecionar para o cliente"
+                            }
+                          >
+                            <Star
+                              className={cn(
+                                "h-4 w-4",
+                                isShortlisted && "fill-current"
+                              )}
+                            />
+                          </Button>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             );
