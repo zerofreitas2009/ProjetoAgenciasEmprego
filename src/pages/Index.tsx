@@ -32,7 +32,11 @@ export default function Index() {
 
           <div className="flex items-center gap-2">
             <ThemeToggle />
-            <Button variant="secondary" className="h-10 rounded-xl hr-btn-secondary" asChild>
+            <Button
+              variant="secondary"
+              className="h-10 rounded-xl hr-btn-secondary"
+              asChild
+            >
               <Link to="/login">Entrar</Link>
             </Button>
             <Button className="h-10 rounded-xl hr-btn-primary" asChild>
@@ -64,11 +68,12 @@ export default function Index() {
             </div>
 
             <h1 className="text-balance text-4xl font-semibold tracking-tight sm:text-5xl">
-              Recrutamento enterprise com atitude — rápido, vibrante e preciso.
+              Recrutamento Enterprise com Inteligência e Alta Performance.
             </h1>
             <p className="text-pretty text-base leading-relaxed text-slate-600 dark:text-slate-300">
-              Do sourcing ao faturamento: pipeline com gargalos, IA Matchmaker e
-              experiência premium para seu time e para o cliente.
+              Do anúncio da vaga ao faturamento. Gerencie candidatos, automatize
+              feedbacks e visualize gargalos em tempo real — tudo em uma interface
+              premium e isolada.
             </p>
 
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -77,7 +82,11 @@ export default function Index() {
                   Criar conta / Entrar <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
               </Button>
-              <Button variant="secondary" className="h-11 rounded-xl hr-btn-secondary" asChild>
+              <Button
+                variant="secondary"
+                className="h-11 rounded-xl hr-btn-secondary"
+                asChild
+              >
                 <Link to="/apply/00000000-0000-0000-0000-000000000000">
                   Ver página de candidatura
                 </Link>
@@ -91,9 +100,12 @@ export default function Index() {
                     <ShieldCheck className="h-4 w-4" />
                   </div>
                   <div>
-                    <div className="text-sm font-semibold">Segurança</div>
+                    <div className="text-sm font-semibold">
+                      Privacidade de Dados Nível Bancário.
+                    </div>
                     <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                      RLS + isolamento por tenant.
+                      Isolamento total por cliente/agência e controle rígido de
+                      acesso.
                     </div>
                   </div>
                 </div>
@@ -105,9 +117,12 @@ export default function Index() {
                     <Workflow className="h-4 w-4" />
                   </div>
                   <div>
-                    <div className="text-sm font-semibold">Operação</div>
+                    <div className="text-sm font-semibold">
+                      Fluxo de Contratação Ágil.
+                    </div>
                     <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                      Pipeline e shortlist em minutos.
+                      Pipeline visual intuitivo para mover candidatos entre as
+                      etapas de seleção.
                     </div>
                   </div>
                 </div>
@@ -119,9 +134,12 @@ export default function Index() {
                     <Sparkles className="h-4 w-4" />
                   </div>
                   <div>
-                    <div className="text-sm font-semibold">Inteligência</div>
+                    <div className="text-sm font-semibold">
+                      Analytics de Performance.
+                    </div>
                     <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                      Matchmaker + alerta de gargalos.
+                      Visualize o tempo médio de contratação e o faturamento
+                      previsto do mês em um só lugar.
                     </div>
                   </div>
                 </div>
@@ -153,26 +171,29 @@ export default function Index() {
               <div className="mt-5 grid gap-3">
                 <div className="rounded-3xl p-4 hr-glass hr-card-hover">
                   <div className="text-xs font-semibold text-slate-600 dark:text-slate-300">
-                    IA Matchmaker
+                    Match Inteligente de Talentos.
                   </div>
                   <div className="mt-2 text-sm text-slate-800 dark:text-slate-100">
-                    Raio‑X em radar para fit por skill.
+                    Identifique instantaneamente os candidatos que possuem o DNA
+                    técnico da sua vaga com nosso gráfico de radar.
                   </div>
                 </div>
                 <div className="rounded-3xl p-4 hr-glass hr-card-hover">
                   <div className="text-xs font-semibold text-slate-600 dark:text-slate-300">
-                    Heatmap de gargalos
+                    Gestão Visual de Gargalos.
                   </div>
                   <div className="mt-2 text-sm text-slate-800 dark:text-slate-100">
-                    Glow âmbar e pulso neon vermelho.
+                    Saiba exatamente quais vagas estão travadas e aja rápido com
+                    alertas de inatividade por cores.
                   </div>
                 </div>
                 <div className="rounded-3xl p-4 hr-glass hr-card-hover">
                   <div className="text-xs font-semibold text-slate-600 dark:text-slate-300">
-                    Portal do cliente
+                    Portal White-Label do Cliente.
                   </div>
                   <div className="mt-2 text-sm text-slate-800 dark:text-slate-100">
-                    Link seguro + feedback instantâneo.
+                    Compartilhe shortlists seguras e receba aprovações ou
+                    feedbacks com apenas um clique, eliminando e-mails infinitos.
                   </div>
                 </div>
               </div>
