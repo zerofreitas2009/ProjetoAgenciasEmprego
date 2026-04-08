@@ -2,12 +2,13 @@ import { useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { hr_Logo as HrLogo } from "@/components/hr_Logo";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { hr_matchScore } from "@/lib/hr_match";
-import { Check, X, UsersRound } from "lucide-react";
+import { Check, X, UsersRound, ArrowLeft } from "lucide-react";
 
 type Row = {
   job_id: string;
@@ -65,114 +66,128 @@ export default function ClientShortlist() {
   }
 
   return (
-    <div className="min-h-screen bg-[hsl(var(--app-bg))] px-4 py-10">
+    <div className="min-h-screen bg-white px-4 py-10 text-slate-900 dark:bg-[#020617] dark:text-slate-100">
       <div className="mx-auto w-full max-w-4xl">
         <header className="mb-8 flex items-center justify-between gap-3">
-          <div className="inline-flex items-center gap-2 rounded-2xl bg-white/70 px-3 py-2 shadow-sm ring-1 ring-black/5">
-            <UsersRound className="h-4 w-4 text-indigo-600" />
-            <span className="text-sm font-semibold tracking-wide text-slate-800">
-              Portal do Cliente
-            </span>
-          </div>
-          <Button
-            variant="secondary"
-            className="rounded-2xl bg-white/70 ring-1 ring-black/5 hover:bg-white"
-            asChild
+          <Link
+            to="/"
+            className="inline-flex items-center gap-2 rounded-2xl px-3 py-2 hr-glass"
+            title="Home"
           >
-            <Link to="/">Página inicial</Link>
-          </Button>
+            <HrLogo size="sm" />
+          </Link>
+
+          <Link
+            to="/"
+            className="group inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/60 px-3 py-2 text-sm font-medium text-slate-600 shadow-sm transition hover:bg-white hover:text-slate-900 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white"
+          >
+            <ArrowLeft className="h-4 w-4 transition group-hover:-translate-x-0.5" />
+            Página inicial
+          </Link>
         </header>
 
-        <Card className="rounded-3xl border-black/5 bg-white/80 p-6 shadow-xl shadow-slate-900/5 backdrop-blur">
+        <Card className="rounded-[28px] p-6 hr-glass">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <h1 className="text-balance text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">
+              <div className="inline-flex items-center gap-2 rounded-full bg-[hsl(var(--primary))]/10 px-3 py-1 text-xs font-semibold text-[hsl(var(--primary))] ring-1 ring-[hsl(var(--primary))]/15 dark:bg-[hsl(var(--primary))]/15 dark:text-white">
+                <UsersRound className="h-4 w-4" />
+                Portal do Cliente
+              </div>
+              <h1 className="mt-3 text-balance text-2xl font-semibold tracking-tight sm:text-3xl">
                 Shortlist
               </h1>
-              <p className="mt-1 text-sm text-slate-600">
+              <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
                 Você verá apenas os perfis selecionados — sem dados de contato.
               </p>
             </div>
             {jobTitle ? (
-              <Badge className="w-fit rounded-full bg-indigo-600 text-white">
+              <Badge className="w-fit rounded-full bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))] shadow-lg shadow-violet-500/15">
                 {jobTitle}
               </Badge>
             ) : null}
           </div>
 
           {shortlistQuery.isFetching ? (
-            <div className="mt-5 rounded-2xl bg-slate-50/70 px-4 py-3 text-sm text-slate-700 ring-1 ring-black/5">
+            <div className="mt-5 rounded-2xl bg-[#F8FAFC]/80 px-4 py-3 text-sm text-slate-700 ring-1 ring-slate-200 dark:bg-white/5 dark:text-slate-200 dark:ring-white/10">
               Carregando shortlist…
             </div>
           ) : shortlistQuery.error ? (
-            <div className="mt-5 rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-800 ring-1 ring-rose-200">
+            <div className="mt-5 rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-800 ring-1 ring-rose-200 dark:bg-rose-950/30 dark:text-rose-200 dark:ring-rose-900/50">
               {(shortlistQuery.error as any)?.message ?? String(shortlistQuery.error)}
             </div>
           ) : (shortlistQuery.data ?? []).length === 0 ? (
-            <div className="mt-6 rounded-3xl bg-slate-50/70 p-6 text-center ring-1 ring-black/5">
-              <div className="mx-auto mb-2 inline-flex items-center justify-center rounded-2xl bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700 ring-1 ring-indigo-200">
+            <div className="mt-6 rounded-3xl bg-[#F8FAFC]/80 p-6 text-center ring-1 ring-slate-200 dark:bg-white/5 dark:ring-white/10">
+              <div className="mx-auto mb-2 inline-flex items-center justify-center rounded-2xl bg-[hsl(var(--primary))]/10 px-3 py-1 text-xs font-semibold text-[hsl(var(--primary))] ring-1 ring-[hsl(var(--primary))]/15 dark:bg-[hsl(var(--primary))]/15 dark:text-white">
                 Sem candidatos
               </div>
-              <p className="text-sm text-slate-600">
+              <p className="text-sm text-slate-600 dark:text-slate-300">
                 A shortlist ainda não possui candidatos.
               </p>
             </div>
           ) : (
-            <div className="mt-6 grid gap-3">
+            <div className="mt-6 grid gap-4">
               {(shortlistQuery.data ?? []).map((row) => {
-                const score = hr_matchScore(
-                  row.candidate_skills,
-                  row.job_requirements
-                );
-                const skills = skillsToArray(row.candidate_skills);
-                const currentDraft =
-                  draftNotes[row.application_id] ?? row.feedback_notes ?? "";
+                const score = hr_matchScore(row.candidate_skills, row.job_requirements);
+                const skillList = skillsToArray(row.candidate_skills);
+                const notes = draftNotes[row.application_id] ?? row.feedback_notes ?? "";
 
                 return (
                   <div
                     key={row.application_id}
-                    className="rounded-3xl bg-white/80 p-5 ring-1 ring-black/5"
+                    className="rounded-[28px] p-5 hr-glass"
                   >
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                      <div>
-                        <div className="text-base font-semibold text-slate-900">
+                      <div className="min-w-0">
+                        <div className="text-base font-semibold">
                           {row.candidate_display_name}
                         </div>
-                        <div className="mt-1 flex flex-wrap gap-2">
-                          <Badge className="rounded-full bg-white text-slate-700 ring-1 ring-black/5">
-                            Etapa: {row.current_stage}
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          <Badge className="rounded-full bg-[hsl(var(--primary))]/10 text-[hsl(var(--primary))] ring-1 ring-[hsl(var(--primary))]/15 dark:bg-[hsl(var(--primary))]/15 dark:text-white">
+                            Match: {score}%
+                          </Badge>
+                          <Badge className="rounded-full bg-white/60 text-slate-700 ring-1 ring-slate-200 dark:bg-white/10 dark:text-slate-200 dark:ring-white/10">
+                            {row.current_stage}
                           </Badge>
                           <Badge
                             className={
                               row.application_status === "APPROVED"
-                                ? "rounded-full bg-emerald-600 text-white"
+                                ? "rounded-full bg-[#10B981] text-white shadow-lg shadow-emerald-500/20"
                                 : row.application_status === "REJECTED"
                                   ? "rounded-full bg-rose-600 text-white"
-                                  : "rounded-full bg-slate-200 text-slate-700"
+                                  : "rounded-full bg-slate-200 text-slate-700 dark:bg-white/10 dark:text-slate-200"
                             }
                           >
                             {row.application_status}
                           </Badge>
-                          <Badge className="rounded-full bg-indigo-50 text-indigo-700 ring-1 ring-indigo-200">
-                            Match: {score}%
-                          </Badge>
                         </div>
+
+                        {skillList.length ? (
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            {skillList.slice(0, 10).map((s) => (
+                              <Badge
+                                key={s}
+                                className="rounded-full bg-white/60 text-slate-700 ring-1 ring-slate-200 dark:bg-white/10 dark:text-slate-200 dark:ring-white/10"
+                              >
+                                {s}
+                              </Badge>
+                            ))}
+                          </div>
+                        ) : null}
                       </div>
 
-                      <div className="flex flex-col gap-2 sm:flex-row">
+                      <div className="flex items-center gap-2">
                         <Button
-                          className="h-10 rounded-2xl bg-emerald-600 text-white hover:bg-emerald-700"
-                          disabled={isSaving === row.application_id}
+                          className="h-10 rounded-xl hr-btn-secondary"
                           onClick={() => setStatus(row.application_id, "APPROVED")}
+                          disabled={isSaving === row.application_id}
                         >
                           <Check className="mr-2 h-4 w-4" />
                           Aprovar
                         </Button>
                         <Button
-                          variant="secondary"
-                          className="h-10 rounded-2xl bg-rose-50 text-rose-700 ring-1 ring-rose-200 hover:bg-rose-100"
-                          disabled={isSaving === row.application_id}
+                          className="h-10 rounded-xl hr-btn-secondary"
                           onClick={() => setStatus(row.application_id, "REJECTED")}
+                          disabled={isSaving === row.application_id}
                         >
                           <X className="mr-2 h-4 w-4" />
                           Reprovar
@@ -180,48 +195,21 @@ export default function ClientShortlist() {
                       </div>
                     </div>
 
-                    <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                      <div>
-                        <div className="text-xs font-semibold text-slate-700">
-                          Qualificações
-                        </div>
-                        {skills.length > 0 ? (
-                          <div className="mt-2 flex flex-wrap gap-2">
-                            {skills.slice(0, 12).map((s) => (
-                              <span
-                                key={s}
-                                className="rounded-full bg-slate-50 px-3 py-1 text-xs font-medium text-slate-700 ring-1 ring-black/5"
-                              >
-                                {s}
-                              </span>
-                            ))}
-                          </div>
-                        ) : (
-                          <p className="mt-2 text-sm text-slate-600">
-                            Skills não informadas.
-                          </p>
-                        )}
+                    <div className="mt-4">
+                      <div className="text-xs font-semibold text-slate-700 dark:text-slate-200">
+                        Feedback (opcional)
                       </div>
-
-                      <div>
-                        <div className="text-xs font-semibold text-slate-700">
-                          Feedback (opcional)
-                        </div>
-                        <Textarea
-                          className="mt-2 min-h-[90px] rounded-2xl bg-white/80"
-                          value={currentDraft}
-                          onChange={(e) =>
-                            setDraftNotes((prev) => ({
-                              ...prev,
-                              [row.application_id]: e.target.value,
-                            }))
-                          }
-                          placeholder="Ex: Gostei do perfil, focar em experiência com X."
-                        />
-                        <p className="mt-1 text-xs text-slate-500">
-                          Ao aprovar/reprovar, seu feedback é salvo e fica visível para a agência.
-                        </p>
-                      </div>
+                      <Textarea
+                        className="mt-2 min-h-[90px] rounded-2xl bg-white/70 ring-1 ring-slate-200 backdrop-blur-md dark:bg-white/5 dark:ring-white/10"
+                        value={notes}
+                        onChange={(e) =>
+                          setDraftNotes((prev) => ({
+                            ...prev,
+                            [row.application_id]: e.target.value,
+                          }))
+                        }
+                        placeholder="Escreva um feedback curto para o recrutador…"
+                      />
                     </div>
                   </div>
                 );
@@ -229,10 +217,6 @@ export default function ClientShortlist() {
             </div>
           )}
         </Card>
-
-        <p className="mt-6 text-center text-xs text-slate-500">
-          Este portal é um link seguro e específico para esta vaga.
-        </p>
       </div>
     </div>
   );

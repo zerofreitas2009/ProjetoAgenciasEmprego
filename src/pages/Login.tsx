@@ -6,7 +6,6 @@ import { ThemeSupa } from "@supabase/auth-ui-shared";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/auth/SessionProvider";
 import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { hr_Logo as HrLogo } from "@/components/hr_Logo";
 import { useTheme } from "next-themes";
 
@@ -90,16 +89,13 @@ export default function Login() {
     <div className="min-h-screen bg-white px-4 py-10 text-slate-900 dark:bg-[#020617] dark:text-slate-100">
       <div className="mx-auto w-full max-w-md">
         <div className="mb-6 flex items-center justify-start">
-          <Button
-            variant="secondary"
-            className="h-10 rounded-xl hr-btn-secondary"
-            asChild
+          <Link
+            to="/"
+            className="group inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/60 px-3 py-2 text-sm font-medium text-slate-600 shadow-sm transition hover:bg-white hover:text-slate-900 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white"
           >
-            <Link to="/">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Voltar para a Home
-            </Link>
-          </Button>
+            <ArrowLeft className="h-4 w-4 transition group-hover:-translate-x-0.5" />
+            <span>Voltar para a Home</span>
+          </Link>
         </div>
 
         <div className="mb-8 text-center">
