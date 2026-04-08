@@ -1,10 +1,14 @@
 import { useMemo, useState } from "react";
 import { Link, Navigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import { Layout } from "@/components/Layout";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/auth/SessionProvider";
-import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Table,
   TableBody,
@@ -13,22 +17,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Users,
-  LogOut,
-  BriefcaseBusiness,
-  Link as LinkIcon,
-  Copy,
-  Wallet,
-} from "lucide-react";
 import { hr_NewJobForm as HrNewJobForm } from "@/components/ats/hr_NewJobForm";
 import { hr_JobCard as HrJobCard, type HrJob } from "@/components/ats/hr_JobCard";
 import {
   hr_PipelineView as HrPipelineView,
   type HrApplicationRow,
 } from "@/components/ats/hr_PipelineView";
+import { Copy, Link as LinkIcon } from "lucide-react";
 
 type Candidate = {
   id: string;
@@ -49,18 +44,6 @@ export default function Dashboard() {
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
   const [guestLink, setGuestLink] = useState<string | null>(null);
   const [isGeneratingLink, setIsGeneratingLink] = useState(false);
-
-  const email = session?.user.email ?? "";
-
-  const roleQuery = useQuery({
-    queryKey: ["hr_role"],
-    enabled: !!session,
-    queryFn: async () => {
-      const { data, error } = await supabase.rpc("get_hr_role");
-      if (error) throw error;
-      return (data as string) ?? null;
-    },
-  });
 
   const tenantIdQuery = useQuery({
     queryKey: ["hr_tenant_id"],
@@ -145,21 +128,6 @@ export default function Dashboard() {
     },
   });
 
-  const candidatesQuery = useQuery({
-    queryKey: ["hr_candidates"],
-    enabled: !!session,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("hr_candidates")
-        .select("id, full_name, email, status, skills, created_at")
-        .order("created_at", { ascending: false })
-        .limit(50);
-
-      if (error) throw error;
-      return (data ?? []) as Candidate[];
-    },
-  });
-
   const companiesQuery = useQuery({
     queryKey: ["hr_companies"],
     enabled: !!session,
@@ -189,6 +157,21 @@ export default function Dashboard() {
 
       if (error) throw error;
       return (data ?? []) as unknown as HrJob[];
+    },
+  });
+
+  const candidatesQuery = useQuery({
+    queryKey: ["hr_candidates"],
+    enabled: !!session,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("hr_candidates")
+        .select("id, full_name, email, status, skills, created_at")
+        .order("created_at", { ascending: false })
+        .limit(50);
+
+      if (error) throw error;
+      return (data ?? []) as Candidate[];
     },
   });
 
@@ -281,107 +264,89 @@ export default function Dashboard() {
   if (!isLoading && !session) return <Navigate to="/login" replace />;
 
   return (
-    <div className="min-h-screen bg-[hsl(var(--app-bg))] px-4 py-8">
-      <div className="mx-auto w-full max-w-6xl">
-        <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <div className="inline-flex items-center gap-2 rounded-2xl bg-white/70 px-3 py-1.5 text-xs font-semibold tracking-wide text-slate-700 shadow-sm ring-1 ring-black/5">
-              <Users className="h-4 w-4 text-indigo-600" />
-              Recrutamento
+    <Layout>
+      <div className="space-y-5">
+        <div className="grid gap-3 sm:grid-cols-3">
+          <Card className="rounded-2xl border-black/5 bg-white/70 p-5 shadow-sm backdrop-blur dark:border-white/10 dark:bg-white/5">
+            <div className="text-xs font-semibold text-slate-600 dark:text-slate-300">
+              Vagas ativas
             </div>
-            <h1 className="mt-3 text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">
-              Dashboard
-            </h1>
-            <p className="mt-1 text-sm text-slate-600">
-              Logado como <span className="font-medium">{email}</span>
+            <div className="mt-2 text-3xl font-semibold tracking-tight">
+              {openJobsCountQuery.isFetching ? (
+                <Skeleton className="h-8 w-16 rounded-xl" />
+              ) : (
+                openJobsCountQuery.data ?? 0
+              )}
+            </div>
+            <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+              hr_jobs com status OPEN
             </p>
-          </div>
-
-          <div className="flex items-center gap-2">
-            {roleQuery.data === "ADMIN" ? (
-              <Button
-                variant="secondary"
-                className="rounded-2xl bg-white/70 ring-1 ring-black/5 hover:bg-white"
-                asChild
-              >
-                <Link to="/finance">
-                  <Wallet className="mr-2 h-4 w-4" />
-                  Financeiro
-                </Link>
-              </Button>
-            ) : null}
-
-            <Button
-              variant="secondary"
-              className="rounded-2xl bg-white/70 ring-1 ring-black/5 hover:bg-white"
-              asChild
-            >
-              <Link to="/">Início</Link>
-            </Button>
-            <Button
-              className="rounded-2xl bg-indigo-600 text-white hover:bg-indigo-700"
-              onClick={() => supabase.auth.signOut()}
-            >
-              <LogOut className="mr-2 h-4 w-4" />
-              Sair
-            </Button>
-          </div>
-        </div>
-
-        <div className="mb-4 grid gap-3 sm:grid-cols-3">
-          <Card className="rounded-3xl border-black/5 bg-white/80 p-5 shadow-sm shadow-slate-900/5 backdrop-blur">
-            <div className="text-xs font-semibold text-slate-700">Vagas ativas</div>
-            <div className="mt-2 text-3xl font-semibold tracking-tight text-slate-900">
-              {openJobsCountQuery.data ?? 0}
-            </div>
-            <p className="mt-1 text-sm text-slate-600">hr_jobs com status OPEN</p>
           </Card>
 
-          <Card className="rounded-3xl border-black/5 bg-white/80 p-5 shadow-sm shadow-slate-900/5 backdrop-blur">
-            <div className="text-xs font-semibold text-slate-700">Funil geral</div>
+          <Card className="rounded-2xl border-black/5 bg-white/70 p-5 shadow-sm backdrop-blur dark:border-white/10 dark:bg-white/5">
+            <div className="text-xs font-semibold text-slate-600 dark:text-slate-300">
+              Funil geral
+            </div>
             <div className="mt-3 space-y-2">
-              {(funnelQuery.data ?? []).slice(0, 4).map((x) => (
-                <div
-                  key={x.stage}
-                  className="flex items-center justify-between gap-2"
-                >
-                  <span className="truncate text-sm text-slate-700">{x.stage}</span>
-                  <Badge className="rounded-full bg-white text-slate-700 ring-1 ring-black/5">
-                    {x.count}
-                  </Badge>
+              {funnelQuery.isFetching ? (
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-full rounded-xl" />
+                  <Skeleton className="h-4 w-4/5 rounded-xl" />
+                  <Skeleton className="h-4 w-3/5 rounded-xl" />
                 </div>
-              ))}
-              {(funnelQuery.data ?? []).length === 0 ? (
-                <p className="text-sm text-slate-600">Sem aplicações ainda.</p>
-              ) : null}
+              ) : (funnelQuery.data ?? []).length === 0 ? (
+                <p className="text-sm text-slate-600 dark:text-slate-300">
+                  Sem aplicações ainda.
+                </p>
+              ) : (
+                (funnelQuery.data ?? []).slice(0, 4).map((x) => (
+                  <div
+                    key={x.stage}
+                    className="flex items-center justify-between gap-2"
+                  >
+                    <span className="truncate text-sm text-slate-700 dark:text-slate-200">
+                      {x.stage}
+                    </span>
+                    <Badge className="rounded-full bg-white text-slate-700 ring-1 ring-black/5 dark:bg-white/10 dark:text-slate-200 dark:ring-white/10">
+                      {x.count}
+                    </Badge>
+                  </div>
+                ))
+              )}
             </div>
           </Card>
 
-          <Card className="rounded-3xl border-black/5 bg-white/80 p-5 shadow-sm shadow-slate-900/5 backdrop-blur">
-            <div className="text-xs font-semibold text-slate-700">Time-to-hire</div>
-            <div className="mt-2 text-3xl font-semibold tracking-tight text-slate-900">
-              {timeToHireQuery.data == null ? "—" : `${timeToHireQuery.data}d`}
+          <Card className="rounded-2xl border-black/5 bg-white/70 p-5 shadow-sm backdrop-blur dark:border-white/10 dark:bg-white/5">
+            <div className="text-xs font-semibold text-slate-600 dark:text-slate-300">
+              Time-to-hire
             </div>
-            <p className="mt-1 text-sm text-slate-600">
-              Média (opcional) até status HIRED
+            <div className="mt-2 text-3xl font-semibold tracking-tight">
+              {timeToHireQuery.isFetching ? (
+                <Skeleton className="h-8 w-20 rounded-xl" />
+              ) : timeToHireQuery.data == null ? (
+                "—"
+              ) : (
+                `${timeToHireQuery.data}d`
+              )}
+            </div>
+            <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+              Média até status HIRED
             </p>
           </Card>
         </div>
 
         <Tabs defaultValue="jobs" className="space-y-4">
-          <TabsList className="w-full justify-start rounded-2xl bg-white/70 p-1 ring-1 ring-black/5">
+          <TabsList className="w-full justify-start rounded-xl bg-white/70 p-1 ring-1 ring-black/5 dark:bg-white/5 dark:ring-white/10">
             <TabsTrigger
               value="jobs"
-              className="rounded-2xl data-[state=active]:bg-indigo-600 data-[state=active]:text-white"
+              className="rounded-xl data-[state=active]:bg-[hsl(var(--primary))] data-[state=active]:text-[hsl(var(--primary-foreground))]"
             >
-              <BriefcaseBusiness className="mr-2 h-4 w-4" />
               Vagas & Pipeline
             </TabsTrigger>
             <TabsTrigger
               value="candidates"
-              className="rounded-2xl data-[state=active]:bg-indigo-600 data-[state=active]:text-white"
+              className="rounded-xl data-[state=active]:bg-[hsl(var(--primary))] data-[state=active]:text-[hsl(var(--primary-foreground))]"
             >
-              <Users className="mr-2 h-4 w-4" />
               Candidatos
             </TabsTrigger>
           </TabsList>
@@ -393,17 +358,15 @@ export default function Dashboard() {
             />
 
             <div className="grid gap-4 lg:grid-cols-[1.1fr_1.9fr]">
-              <Card className="rounded-3xl border-black/5 bg-white/80 p-5 shadow-xl shadow-slate-900/5 backdrop-blur">
+              <Card className="rounded-3xl border-black/5 bg-white/70 p-5 shadow-sm backdrop-blur dark:border-white/10 dark:bg-white/5">
                 <div className="flex items-end justify-between gap-3">
                   <div>
-                    <h2 className="text-base font-semibold text-slate-900">
-                      Vagas (hr_jobs)
-                    </h2>
-                    <p className="text-sm text-slate-600">
+                    <h2 className="text-base font-semibold">Vagas</h2>
+                    <p className="text-sm text-slate-600 dark:text-slate-300">
                       Selecione uma vaga para ver o pipeline.
                     </p>
                   </div>
-                  <div className="text-sm text-slate-600">
+                  <div className="text-sm text-slate-600 dark:text-slate-300">
                     {jobsQuery.isFetching
                       ? "Carregando…"
                       : `${(jobsQuery.data ?? []).length} vaga(s)`}
@@ -411,19 +374,22 @@ export default function Dashboard() {
                 </div>
 
                 {jobsQuery.error ? (
-                  <div className="mt-4 rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-800 ring-1 ring-rose-200">
+                  <div className="mt-4 rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-800 ring-1 ring-rose-200 dark:bg-rose-950/30 dark:text-rose-200 dark:ring-rose-900/50">
                     {(jobsQuery.error as any)?.message ?? String(jobsQuery.error)}
                   </div>
                 ) : null}
 
                 <div className="mt-4 space-y-3">
-                  {(jobsQuery.data ?? []).length === 0 && !jobsQuery.isFetching ? (
-                    <div className="rounded-3xl bg-slate-50/70 p-6 text-center ring-1 ring-black/5">
-                      <div className="mx-auto mb-2 inline-flex items-center justify-center rounded-2xl bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700 ring-1 ring-indigo-200">
-                        Sem vagas
-                      </div>
-                      <p className="text-sm text-slate-600">
-                        Crie sua primeira vaga para começar a receber aplicações.
+                  {jobsQuery.isFetching ? (
+                    <div className="space-y-3">
+                      <Skeleton className="h-[110px] w-full rounded-3xl" />
+                      <Skeleton className="h-[110px] w-full rounded-3xl" />
+                      <Skeleton className="h-[110px] w-full rounded-3xl" />
+                    </div>
+                  ) : (jobsQuery.data ?? []).length === 0 ? (
+                    <div className="rounded-3xl bg-white/60 p-6 text-center ring-1 ring-black/5 dark:bg-white/5 dark:ring-white/10">
+                      <p className="text-sm text-slate-600 dark:text-slate-300">
+                        Crie sua primeira vaga para começar.
                       </p>
                     </div>
                   ) : (
@@ -444,18 +410,18 @@ export default function Dashboard() {
 
               {selectedJob ? (
                 <div className="space-y-4">
-                  <Card className="rounded-3xl border-black/5 bg-white/80 p-5 shadow-sm shadow-slate-900/5 backdrop-blur">
+                  <Card className="rounded-3xl border-black/5 bg-white/70 p-5 shadow-sm backdrop-blur dark:border-white/10 dark:bg-white/5">
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                       <div>
-                        <div className="text-xs font-semibold text-slate-700">
+                        <div className="text-xs font-semibold text-slate-600 dark:text-slate-300">
                           Link compartilhável (cliente)
                         </div>
-                        <div className="mt-1 text-sm text-slate-600">
+                        <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">
                           Mostra apenas a shortlist e permite feedback.
                         </div>
                       </div>
                       <Button
-                        className="h-11 rounded-2xl bg-indigo-600 text-white hover:bg-indigo-700"
+                        className="h-11 rounded-xl bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))] shadow-sm hover:opacity-95"
                         onClick={generateGuestLink}
                         disabled={isGeneratingLink}
                       >
@@ -465,13 +431,13 @@ export default function Dashboard() {
                     </div>
 
                     {guestLink ? (
-                      <div className="mt-3 flex flex-col gap-2 rounded-2xl bg-slate-50/70 p-3 ring-1 ring-black/5 sm:flex-row sm:items-center sm:justify-between">
-                        <div className="min-w-0 break-all text-xs text-slate-700">
+                      <div className="mt-3 flex flex-col gap-2 rounded-2xl bg-white/60 p-3 ring-1 ring-black/5 dark:bg-white/5 dark:ring-white/10 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="min-w-0 break-all text-xs text-slate-700 dark:text-slate-200">
                           {guestLink}
                         </div>
                         <Button
                           variant="secondary"
-                          className="h-9 rounded-2xl bg-white/70 ring-1 ring-black/5 hover:bg-white"
+                          className="h-9 rounded-xl bg-white/70 ring-1 ring-black/5 hover:bg-white dark:bg-white/5 dark:ring-white/10 dark:hover:bg-white/10"
                           onClick={() => navigator.clipboard.writeText(guestLink)}
                         >
                           <Copy className="mr-2 h-4 w-4" />
@@ -497,97 +463,98 @@ export default function Dashboard() {
                   />
                 </div>
               ) : (
-                <Card className="rounded-3xl border-black/5 bg-white/80 p-6 shadow-xl shadow-slate-900/5 backdrop-blur">
-                  <div className="text-center">
-                    <div className="mx-auto mb-2 inline-flex items-center justify-center rounded-2xl bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700 ring-1 ring-indigo-200">
-                      Selecione uma vaga
-                    </div>
-                    <p className="text-sm text-slate-600">
-                      Escolha uma vaga à esquerda para visualizar as aplicações por
-                      etapa.
-                    </p>
-                  </div>
+                <Card className="rounded-3xl border-black/5 bg-white/70 p-6 text-center shadow-sm backdrop-blur dark:border-white/10 dark:bg-white/5">
+                  <p className="text-sm text-slate-600 dark:text-slate-300">
+                    Selecione uma vaga para visualizar as etapas.
+                  </p>
                 </Card>
               )}
             </div>
           </TabsContent>
 
           <TabsContent value="candidates">
-            <Card className="rounded-3xl border-black/5 bg-white/80 p-5 shadow-xl shadow-slate-900/5 backdrop-blur">
-              <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+            <Card className="rounded-3xl border-black/5 bg-white/70 p-5 shadow-sm backdrop-blur dark:border-white/10 dark:bg-white/5">
+              <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-base font-semibold text-slate-900">
-                    Candidatos (hr_candidates)
-                  </h2>
-                  <p className="text-sm text-slate-600">
-                    Lista dos últimos 50 candidatos do seu tenant.
+                  <h2 className="text-base font-semibold">Candidatos</h2>
+                  <p className="text-sm text-slate-600 dark:text-slate-300">
+                    Últimos 50 candidatos do seu tenant.
                   </p>
                 </div>
-
-                <div className="text-sm text-slate-600">
+                <div className="text-sm text-slate-600 dark:text-slate-300">
                   {candidatesQuery.isFetching
                     ? "Carregando…"
                     : `${candidateRows.length} registro(s)`}
                 </div>
               </div>
 
-              <div className="mt-4 overflow-hidden rounded-2xl ring-1 ring-black/5">
+              <div className="mt-4 overflow-hidden rounded-2xl ring-1 ring-black/5 dark:ring-white/10">
                 <Table>
                   <TableHeader>
-                    <TableRow className="bg-slate-50/80">
-                      <TableHead className="text-slate-700">Nome</TableHead>
-                      <TableHead className="text-slate-700">E-mail</TableHead>
-                      <TableHead className="text-slate-700">Status</TableHead>
-                      <TableHead className="text-right text-slate-700">
+                    <TableRow className="bg-slate-50/70 dark:bg-white/5">
+                      <TableHead className="text-slate-600 dark:text-slate-300">
+                        Nome
+                      </TableHead>
+                      <TableHead className="text-slate-600 dark:text-slate-300">
+                        E-mail
+                      </TableHead>
+                      <TableHead className="text-slate-600 dark:text-slate-300">
+                        Status
+                      </TableHead>
+                      <TableHead className="text-right text-slate-600 dark:text-slate-300">
                         Criado
                       </TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {candidatesQuery.error ? (
+                    {candidatesQuery.isFetching ? (
+                      Array.from({ length: 6 }).map((_, i) => (
+                        <TableRow key={i}>
+                          <TableCell colSpan={4}>
+                            <Skeleton className="h-8 w-full rounded-xl" />
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    ) : candidatesQuery.error ? (
                       <TableRow>
                         <TableCell colSpan={4} className="py-8">
-                          <div className="rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-800 ring-1 ring-rose-200">
-                            Falha ao carregar candidates (verifique login/RLS):{" "}
+                          <div className="rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-800 ring-1 ring-rose-200 dark:bg-rose-950/30 dark:text-rose-200 dark:ring-rose-900/50">
                             {(candidatesQuery.error as any)?.message ??
                               String(candidatesQuery.error)}
                           </div>
                         </TableCell>
                       </TableRow>
-                    ) : candidateRows.length === 0 && !candidatesQuery.isFetching ? (
+                    ) : candidateRows.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={4} className="py-10">
-                          <div className="text-center">
-                            <div className="mx-auto mb-2 inline-flex items-center justify-center rounded-2xl bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700 ring-1 ring-indigo-200">
-                              Comece por aqui
-                            </div>
-                            <p className="text-sm text-slate-600">
-                              Nenhum candidato encontrado ainda.
-                            </p>
-                          </div>
+                        <TableCell colSpan={4} className="py-10 text-center">
+                          <p className="text-sm text-slate-600 dark:text-slate-300">
+                            Nenhum candidato ainda.
+                          </p>
                         </TableCell>
                       </TableRow>
                     ) : (
                       candidateRows.map((c) => (
-                        <TableRow key={c.id} className="hover:bg-slate-50/70">
-                          <TableCell className="font-medium text-slate-900">
+                        <TableRow
+                          key={c.id}
+                          className="transition hover:bg-slate-50/70 dark:hover:bg-white/5"
+                        >
+                          <TableCell className="font-medium">
                             <Link
                               to={`/candidates/${c.id}`}
-                              className="underline decoration-slate-300 underline-offset-4 hover:decoration-slate-500"
+                              className="underline decoration-slate-300 underline-offset-4 hover:decoration-slate-500 dark:decoration-white/20 dark:hover:decoration-white/40"
                             >
                               {c.full_name}
                             </Link>
                           </TableCell>
-                          <TableCell className="text-slate-700">{c.email}</TableCell>
+                          <TableCell className="text-slate-700 dark:text-slate-200">
+                            {c.email}
+                          </TableCell>
                           <TableCell>
-                            <Badge
-                              className="rounded-full bg-indigo-600 text-white"
-                              variant="default"
-                            >
+                            <Badge className="rounded-full bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))]">
                               {c.status}
                             </Badge>
                           </TableCell>
-                          <TableCell className="text-right text-slate-600">
+                          <TableCell className="text-right text-slate-600 dark:text-slate-300">
                             {new Date(c.created_at).toLocaleDateString()}
                           </TableCell>
                         </TableRow>
@@ -600,6 +567,6 @@ export default function Dashboard() {
           </TabsContent>
         </Tabs>
       </div>
-    </div>
+    </Layout>
   );
 }

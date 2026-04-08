@@ -1,10 +1,10 @@
 import { useMemo, useState } from "react";
-import { Link, Navigate } from "react-router-dom";
+import { Navigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import { Layout } from "@/components/Layout";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/auth/SessionProvider";
 import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -21,7 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Wallet } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 
 type PlacementRow = {
   id: string;
@@ -104,37 +104,6 @@ export default function Finance() {
   }, [placementsQuery.data]);
 
   if (!isLoading && !session) return <Navigate to="/login" replace />;
-  if (roleQuery.data && roleQuery.data !== "ADMIN") {
-    return (
-      <div className="min-h-screen bg-[hsl(var(--app-bg))] px-4 py-10">
-        <div className="mx-auto w-full max-w-xl">
-          <Card className="rounded-3xl border-black/5 bg-white/80 p-6 shadow-xl shadow-slate-900/5 backdrop-blur">
-            <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
-              Acesso restrito
-            </h1>
-            <p className="mt-2 text-sm text-slate-600">
-              A página financeira está disponível apenas para usuários com role
-              <span className="ml-1 rounded-full bg-slate-100 px-2 py-0.5 font-mono text-xs text-slate-700 ring-1 ring-black/5">
-                ADMIN
-              </span>
-              .
-            </p>
-            <div className="mt-5">
-              <Button
-                className="h-11 rounded-2xl bg-indigo-600 text-white hover:bg-indigo-700"
-                asChild
-              >
-                <Link to="/dashboard">
-                  <ArrowLeft className="mr-2 h-4 w-4" />
-                  Voltar ao Dashboard
-                </Link>
-              </Button>
-            </div>
-          </Card>
-        </div>
-      </div>
-    );
-  }
 
   async function updateBillingStatus(id: string, next: string) {
     setSavingId(id);
@@ -151,155 +120,169 @@ export default function Finance() {
   }
 
   return (
-    <div className="min-h-screen bg-[hsl(var(--app-bg))] px-4 py-8">
-      <div className="mx-auto w-full max-w-6xl">
-        <header className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <div className="inline-flex items-center gap-2 rounded-2xl bg-white/70 px-3 py-1.5 text-xs font-semibold tracking-wide text-slate-700 shadow-sm ring-1 ring-black/5">
-              <Wallet className="h-4 w-4 text-indigo-600" />
-              Financeiro
-            </div>
-            <h1 className="mt-3 text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">
-              Contratações do mês
-            </h1>
-            <p className="mt-1 text-sm text-slate-600">
-              Relatório simples de faturamento previsto vs realizado.
-            </p>
-          </div>
-
-          <Button
-            variant="secondary"
-            className="rounded-2xl bg-white/70 ring-1 ring-black/5 hover:bg-white"
-            asChild
-          >
-            <Link to="/dashboard">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Voltar
-            </Link>
-          </Button>
-        </header>
-
-        <div className="mb-4 grid gap-3 sm:grid-cols-2">
-          <Card className="rounded-3xl border-black/5 bg-white/80 p-5 shadow-sm shadow-slate-900/5 backdrop-blur">
-            <div className="text-xs font-semibold text-slate-700">
-              Faturamento previsto
-            </div>
-            <div className="mt-2 text-3xl font-semibold tracking-tight text-slate-900">
-              {formatBRL(totals.previsto)}
-            </div>
-            <p className="mt-1 text-sm text-slate-600">
-              Soma das fees não canceladas
-            </p>
-          </Card>
-
-          <Card className="rounded-3xl border-black/5 bg-white/80 p-5 shadow-sm shadow-slate-900/5 backdrop-blur">
-            <div className="text-xs font-semibold text-slate-700">
-              Faturamento realizado
-            </div>
-            <div className="mt-2 text-3xl font-semibold tracking-tight text-slate-900">
-              {formatBRL(totals.realizado)}
-            </div>
-            <p className="mt-1 text-sm text-slate-600">Fees com status PAID</p>
-          </Card>
-        </div>
-
-        <Card className="rounded-3xl border-black/5 bg-white/80 p-5 shadow-xl shadow-slate-900/5 backdrop-blur">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <h2 className="text-base font-semibold text-slate-900">Placements</h2>
-              <p className="text-sm text-slate-600">
-                {monthRange.start.toLocaleDateString()} – {monthRange.end.toLocaleDateString()}
+    <Layout>
+      {roleQuery.data && roleQuery.data !== "ADMIN" ? (
+        <Card className="rounded-3xl border-black/5 bg-white/70 p-6 shadow-sm backdrop-blur dark:border-white/10 dark:bg-white/5">
+          <h1 className="text-2xl font-semibold tracking-tight">Acesso restrito</h1>
+          <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+            A página financeira está disponível apenas para usuários com role
+            <span className="ml-2 rounded-full bg-white/60 px-2 py-0.5 font-mono text-xs text-slate-700 ring-1 ring-black/5 dark:bg-white/10 dark:text-slate-200 dark:ring-white/10">
+              ADMIN
+            </span>
+            .
+          </p>
+        </Card>
+      ) : (
+        <div className="space-y-4">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Card className="rounded-2xl border-black/5 bg-white/70 p-5 shadow-sm backdrop-blur dark:border-white/10 dark:bg-white/5">
+              <div className="text-xs font-semibold text-slate-600 dark:text-slate-300">
+                Faturamento previsto
+              </div>
+              <div className="mt-2 text-3xl font-semibold tracking-tight">
+                {placementsQuery.isFetching ? (
+                  <Skeleton className="h-8 w-44 rounded-xl" />
+                ) : (
+                  formatBRL(totals.previsto)
+                )}
+              </div>
+              <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                Soma das fees não canceladas
               </p>
-            </div>
-            <div className="text-sm text-slate-600">
-              {placementsQuery.isFetching
-                ? "Carregando…"
-                : `${(placementsQuery.data ?? []).length} registro(s)`}
-            </div>
+            </Card>
+
+            <Card className="rounded-2xl border-black/5 bg-white/70 p-5 shadow-sm backdrop-blur dark:border-white/10 dark:bg-white/5">
+              <div className="text-xs font-semibold text-slate-600 dark:text-slate-300">
+                Faturamento realizado
+              </div>
+              <div className="mt-2 text-3xl font-semibold tracking-tight">
+                {placementsQuery.isFetching ? (
+                  <Skeleton className="h-8 w-44 rounded-xl" />
+                ) : (
+                  formatBRL(totals.realizado)
+                )}
+              </div>
+              <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                Fees com status PAID
+              </p>
+            </Card>
           </div>
 
-          {placementsQuery.error ? (
-            <div className="mt-4 rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-800 ring-1 ring-rose-200">
-              {(placementsQuery.error as any)?.message ??
-                String(placementsQuery.error)}
+          <Card className="rounded-3xl border-black/5 bg-white/70 p-5 shadow-sm backdrop-blur dark:border-white/10 dark:bg-white/5">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-base font-semibold">Placements do mês</h2>
+                <p className="text-sm text-slate-600 dark:text-slate-300">
+                  {monthRange.start.toLocaleDateString()} – {monthRange.end.toLocaleDateString()}
+                </p>
+              </div>
+              <div className="text-sm text-slate-600 dark:text-slate-300">
+                {placementsQuery.isFetching
+                  ? "Carregando…"
+                  : `${(placementsQuery.data ?? []).length} registro(s)`}
+              </div>
             </div>
-          ) : null}
 
-          <div className="mt-4 overflow-hidden rounded-2xl ring-1 ring-black/5">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-slate-50/80">
-                  <TableHead className="text-slate-700">Cliente</TableHead>
-                  <TableHead className="text-slate-700">Vaga</TableHead>
-                  <TableHead className="text-slate-700">Candidato</TableHead>
-                  <TableHead className="text-right text-slate-700">
-                    Fee (R$)
-                  </TableHead>
-                  <TableHead className="text-slate-700">Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {(placementsQuery.data ?? []).length === 0 && !placementsQuery.isFetching ? (
-                  <TableRow>
-                    <TableCell colSpan={5} className="py-10">
-                      <div className="text-center">
-                        <div className="mx-auto mb-2 inline-flex items-center justify-center rounded-2xl bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700 ring-1 ring-indigo-200">
-                          Sem dados
-                        </div>
-                        <p className="text-sm text-slate-600">
+            {placementsQuery.error ? (
+              <div className="mt-4 rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-800 ring-1 ring-rose-200 dark:bg-rose-950/30 dark:text-rose-200 dark:ring-rose-900/50">
+                {(placementsQuery.error as any)?.message ??
+                  String(placementsQuery.error)}
+              </div>
+            ) : null}
+
+            <div className="mt-4 overflow-hidden rounded-2xl ring-1 ring-black/5 dark:ring-white/10">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-slate-50/70 dark:bg-white/5">
+                    <TableHead className="text-slate-600 dark:text-slate-300">
+                      Cliente
+                    </TableHead>
+                    <TableHead className="text-slate-600 dark:text-slate-300">
+                      Vaga
+                    </TableHead>
+                    <TableHead className="text-slate-600 dark:text-slate-300">
+                      Candidato
+                    </TableHead>
+                    <TableHead className="text-right text-slate-600 dark:text-slate-300">
+                      Fee
+                    </TableHead>
+                    <TableHead className="text-slate-600 dark:text-slate-300">
+                      Status
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {placementsQuery.isFetching ? (
+                    Array.from({ length: 6 }).map((_, i) => (
+                      <TableRow key={i}>
+                        <TableCell colSpan={5}>
+                          <Skeleton className="h-8 w-full rounded-xl" />
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (placementsQuery.data ?? []).length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={5} className="py-10 text-center">
+                        <p className="text-sm text-slate-600 dark:text-slate-300">
                           Quando uma aplicação for marcada como HIRED, um placement
                           será criado automaticamente.
                         </p>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  (placementsQuery.data ?? []).map((p) => {
-                    const fee = feeValue(p.salary_offered ?? 0, p.fee_percentage ?? 0);
-                    return (
-                      <TableRow key={p.id} className="hover:bg-slate-50/70">
-                        <TableCell className="font-medium text-slate-900">
-                          {p.job?.company?.name ?? "—"}
-                        </TableCell>
-                        <TableCell className="text-slate-700">
-                          {p.job?.title ?? "—"}
-                        </TableCell>
-                        <TableCell className="text-slate-700">
-                          {p.candidate?.full_name ?? "—"}
-                        </TableCell>
-                        <TableCell className="text-right font-semibold text-slate-900">
-                          {formatBRL(fee)}
-                        </TableCell>
-                        <TableCell>
-                          <Select
-                            value={p.billing_status}
-                            onValueChange={(v) => updateBillingStatus(p.id, v)}
-                            disabled={savingId === p.id}
-                          >
-                            <SelectTrigger className="h-10 w-[160px] rounded-2xl bg-white/80">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="PENDING">PENDING</SelectItem>
-                              <SelectItem value="PAID">PAID</SelectItem>
-                              <SelectItem value="CANCELLED">CANCELLED</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <div className="mt-2">
-                            <Badge className="rounded-full bg-white text-slate-700 ring-1 ring-black/5">
-                              {p.fee_percentage}% de {formatBRL(p.salary_offered ?? 0)}
-                            </Badge>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </Card>
-      </div>
-    </div>
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    (placementsQuery.data ?? []).map((p) => {
+                      const fee = feeValue(
+                        p.salary_offered ?? 0,
+                        p.fee_percentage ?? 0
+                      );
+                      return (
+                        <TableRow
+                          key={p.id}
+                          className="transition hover:bg-slate-50/70 dark:hover:bg-white/5"
+                        >
+                          <TableCell className="font-medium">
+                            {p.job?.company?.name ?? "—"}
+                          </TableCell>
+                          <TableCell className="text-slate-700 dark:text-slate-200">
+                            {p.job?.title ?? "—"}
+                          </TableCell>
+                          <TableCell className="text-slate-700 dark:text-slate-200">
+                            {p.candidate?.full_name ?? "—"}
+                          </TableCell>
+                          <TableCell className="text-right font-semibold">
+                            {formatBRL(fee)}
+                          </TableCell>
+                          <TableCell>
+                            <Select
+                              value={p.billing_status}
+                              onValueChange={(v) => updateBillingStatus(p.id, v)}
+                              disabled={savingId === p.id}
+                            >
+                              <SelectTrigger className="h-10 w-[160px] rounded-xl bg-white/70 dark:bg-white/5">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="PENDING">PENDING</SelectItem>
+                                <SelectItem value="PAID">PAID</SelectItem>
+                                <SelectItem value="CANCELLED">CANCELLED</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <div className="mt-2">
+                              <Badge className="rounded-full bg-white text-slate-700 ring-1 ring-black/5 dark:bg-white/10 dark:text-slate-200 dark:ring-white/10">
+                                {p.fee_percentage}% de {formatBRL(p.salary_offered ?? 0)}
+                              </Badge>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </Card>
+        </div>
+      )}
+    </Layout>
   );
 }

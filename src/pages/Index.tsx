@@ -1,57 +1,68 @@
 import { Link } from "react-router-dom";
-import { ArrowRight, ShieldCheck, UsersRound, Sparkles } from "lucide-react";
+import { ArrowRight, ShieldCheck, Sparkles, Workflow } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
-const Index = () => {
+export default function Index() {
   return (
-    <div className="min-h-screen bg-[hsl(var(--app-bg))]">
+    <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-[#0B1020] dark:text-slate-100">
       <div className="mx-auto w-full max-w-6xl px-4 py-10">
-        <header className="flex items-center justify-between">
-          <div className="inline-flex items-center gap-2 rounded-2xl bg-white/70 px-3 py-2 shadow-sm ring-1 ring-black/5">
-            <div className="h-2.5 w-2.5 rounded-full bg-indigo-600" />
-            <span className="text-sm font-semibold tracking-wide text-slate-800">
-              HR SaaS
-            </span>
-          </div>
+        <header className="flex items-center justify-between gap-3">
+          <Link
+            to="/"
+            className="group inline-flex items-center gap-2 rounded-xl border border-black/5 bg-white/70 px-3 py-2 text-sm font-semibold tracking-tight text-slate-900 shadow-sm backdrop-blur transition hover:bg-white dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
+          >
+            <span className="h-2.5 w-2.5 rounded-full bg-[hsl(var(--primary))] transition group-hover:scale-110" />
+            HR SaaS
+          </Link>
 
           <div className="flex items-center gap-2">
+            <ThemeToggle />
             <Button
               variant="secondary"
-              className="rounded-2xl bg-white/70 ring-1 ring-black/5 hover:bg-white"
+              className="h-10 rounded-xl bg-white/70 ring-1 ring-black/5 hover:bg-white dark:bg-white/5 dark:ring-white/10 dark:hover:bg-white/10"
               asChild
             >
               <Link to="/login">Entrar</Link>
             </Button>
             <Button
-              className="rounded-2xl bg-indigo-600 text-white hover:bg-indigo-700"
+              className="h-10 rounded-xl bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))] shadow-sm hover:opacity-95"
               asChild
             >
               <Link to="/dashboard">
-                Ir para o Dashboard <ArrowRight className="ml-2 h-4 w-4" />
+                Abrir workspace <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
             </Button>
           </div>
         </header>
 
-        <main className="mt-10 grid gap-6 lg:grid-cols-2 lg:items-center">
-          <div>
-            <div className="inline-flex items-center gap-2 rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700 ring-1 ring-indigo-200">
-              <Sparkles className="h-4 w-4" />
-              Multi-tenant com RLS no Supabase
+        <main className="mt-12 grid gap-6 lg:grid-cols-2 lg:items-start">
+          <div className="space-y-6">
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge className="rounded-full bg-indigo-50 text-indigo-700 ring-1 ring-indigo-200 dark:bg-white/10 dark:text-white dark:ring-white/10">
+                Multi-tenant
+              </Badge>
+              <Badge className="rounded-full bg-slate-100 text-slate-700 ring-1 ring-black/5 dark:bg-white/10 dark:text-slate-200 dark:ring-white/10">
+                RLS first
+              </Badge>
+              <Badge className="rounded-full bg-slate-100 text-slate-700 ring-1 ring-black/5 dark:bg-white/10 dark:text-slate-200 dark:ring-white/10">
+                ATS + Portal do Cliente
+              </Badge>
             </div>
 
-            <h1 className="mt-4 text-balance text-4xl font-semibold tracking-tight text-slate-900 sm:text-5xl">
-              Recrutamento com isolamento por tenant — do jeito certo.
+            <h1 className="text-balance text-4xl font-semibold tracking-tight sm:text-5xl">
+              Recrutamento enterprise com UX premium — sem ruído.
             </h1>
-            <p className="mt-4 text-pretty text-base leading-relaxed text-slate-600">
-              Estrutura inicial pronta: tabelas <span className="font-medium">hr_*</span>,
-              policies de tenant e criação automática de tenant+perfil no signup.
+            <p className="text-pretty text-base leading-relaxed text-slate-600 dark:text-slate-300">
+              Um fluxo completo: vagas, pipeline, shortlist compartilhável, feedback
+              do cliente e financeiro — tudo com isolamento por tenant.
             </p>
 
-            <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
               <Button
-                className="h-11 rounded-2xl bg-indigo-600 text-white hover:bg-indigo-700"
+                className="h-11 rounded-xl bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))] shadow-sm hover:opacity-95"
                 asChild
               >
                 <Link to="/login">
@@ -60,63 +71,112 @@ const Index = () => {
               </Button>
               <Button
                 variant="secondary"
-                className="h-11 rounded-2xl bg-white/70 ring-1 ring-black/5 hover:bg-white"
+                className="h-11 rounded-xl bg-white/70 ring-1 ring-black/5 hover:bg-white dark:bg-white/5 dark:ring-white/10 dark:hover:bg-white/10"
                 asChild
               >
-                <Link to="/dashboard">Ver listagem de candidatos</Link>
+                <Link to="/apply/00000000-0000-0000-0000-000000000000">
+                  Ver página de candidatura
+                </Link>
               </Button>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-3">
+              <Card className="rounded-2xl border-black/5 bg-white/70 p-4 shadow-sm backdrop-blur transition hover:bg-white dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10">
+                <div className="flex items-start gap-3">
+                  <div className="mt-0.5 inline-flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-50 text-indigo-700 ring-1 ring-indigo-200 dark:bg-white/10 dark:text-white dark:ring-white/10">
+                    <ShieldCheck className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <div className="text-sm font-semibold">Segurança</div>
+                    <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                      RLS + isolamento real por tenant.
+                    </div>
+                  </div>
+                </div>
+              </Card>
+
+              <Card className="rounded-2xl border-black/5 bg-white/70 p-4 shadow-sm backdrop-blur transition hover:bg-white dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10">
+                <div className="flex items-start gap-3">
+                  <div className="mt-0.5 inline-flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-50 text-indigo-700 ring-1 ring-indigo-200 dark:bg-white/10 dark:text-white dark:ring-white/10">
+                    <Workflow className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <div className="text-sm font-semibold">Fluxo</div>
+                    <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                      Pipeline, shortlist e feedback em um lugar.
+                    </div>
+                  </div>
+                </div>
+              </Card>
+
+              <Card className="rounded-2xl border-black/5 bg-white/70 p-4 shadow-sm backdrop-blur transition hover:bg-white dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10">
+                <div className="flex items-start gap-3">
+                  <div className="mt-0.5 inline-flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-50 text-indigo-700 ring-1 ring-indigo-200 dark:bg-white/10 dark:text-white dark:ring-white/10">
+                    <Sparkles className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <div className="text-sm font-semibold">Experiência</div>
+                    <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                      UI clean, rápida e consistente.
+                    </div>
+                  </div>
+                </div>
+              </Card>
             </div>
           </div>
 
-          <Card className="overflow-hidden rounded-3xl border-black/5 bg-white/80 shadow-xl shadow-slate-900/5 backdrop-blur">
-            <div className="grid gap-0 sm:grid-cols-2">
-              <div className="p-6">
-                <p className="text-sm font-semibold text-slate-900">
-                  O que já está funcionando
-                </p>
-                <ul className="mt-4 space-y-3 text-sm text-slate-600">
-                  <li className="flex gap-3">
-                    <ShieldCheck className="mt-0.5 h-4 w-4 text-indigo-600" />
-                    <span>RLS em todas as tabelas hr_*</span>
-                  </li>
-                  <li className="flex gap-3">
-                    <UsersRound className="mt-0.5 h-4 w-4 text-indigo-600" />
-                    <span>
-                      get_hr_tenant() para resolver o tenant do usuário logado
-                    </span>
-                  </li>
-                  <li className="flex gap-3">
-                    <Sparkles className="mt-0.5 h-4 w-4 text-indigo-600" />
-                    <span>
-                      Trigger: cria tenant e hr_profile automaticamente no signup
-                    </span>
-                  </li>
-                </ul>
-              </div>
-              <div className="relative bg-slate-50/70 p-6">
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(99,102,241,0.18),transparent_55%),radial-gradient(circle_at_70%_70%,rgba(14,165,233,0.16),transparent_50%)]" />
-                <div className="relative rounded-2xl bg-white/70 p-4 ring-1 ring-black/5">
-                  <p className="text-xs font-semibold text-slate-700">
-                    Próximo passo
-                  </p>
-                  <p className="mt-2 text-sm text-slate-600">
-                    Inserir candidatos e evoluir o fluxo de vagas, pipeline e
-                    comunicação.
-                  </p>
+          <div className="space-y-4">
+            <Card className="rounded-3xl border-black/5 bg-white/70 p-6 shadow-sm backdrop-blur dark:border-white/10 dark:bg-white/5">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-sm font-semibold">Visão geral</div>
+                  <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                    KPI + pipeline + cliente + financeiro.
+                  </div>
                 </div>
-
-                <img
-                  src="/placeholder.svg"
-                  alt="Ilustração"
-                  className="relative mt-5 w-full rounded-2xl opacity-90"
-                />
+                <Badge className="rounded-full bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))]">
+                  Premium
+                </Badge>
               </div>
-            </div>
-          </Card>
+
+              <div className="mt-5 grid gap-3">
+                <div className="rounded-2xl border border-black/5 bg-white/70 p-4 shadow-sm transition hover:bg-white dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10">
+                  <div className="text-xs font-semibold text-slate-600 dark:text-slate-300">
+                    Shortlist do Cliente
+                  </div>
+                  <div className="mt-2 text-sm text-slate-800 dark:text-slate-100">
+                    Link seguro + feedback com 1 clique.
+                  </div>
+                </div>
+                <div className="rounded-2xl border border-black/5 bg-white/70 p-4 shadow-sm transition hover:bg-white dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10">
+                  <div className="text-xs font-semibold text-slate-600 dark:text-slate-300">
+                    Storage de currículos
+                  </div>
+                  <div className="mt-2 text-sm text-slate-800 dark:text-slate-100">
+                    Signed URLs + policies por tenant.
+                  </div>
+                </div>
+                <div className="rounded-2xl border border-black/5 bg-white/70 p-4 shadow-sm transition hover:bg-white dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10">
+                  <div className="text-xs font-semibold text-slate-600 dark:text-slate-300">
+                    Financeiro
+                  </div>
+                  <div className="mt-2 text-sm text-slate-800 dark:text-slate-100">
+                    Placements, fee e faturamento do mês.
+                  </div>
+                </div>
+              </div>
+            </Card>
+
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Dica: ative o modo escuro no ícone do topo — tudo usa classes
+              <span className="mx-1 rounded bg-white/60 px-1.5 py-0.5 font-mono text-[11px] text-slate-700 ring-1 ring-black/5 dark:bg-white/10 dark:text-slate-200 dark:ring-white/10">
+                dark:
+              </span>
+              do Tailwind.
+            </p>
+          </div>
         </main>
       </div>
     </div>
   );
-};
-
-export default Index;
+}
