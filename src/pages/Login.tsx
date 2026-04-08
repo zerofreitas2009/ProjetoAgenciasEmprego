@@ -12,14 +12,18 @@ const ptBR = {
   variables: {
     sign_in: {
       email_label: "E-mail",
+      email_input_placeholder: "Seu endereço de e-mail",
       password_label: "Senha",
+      password_input_placeholder: "Sua senha",
       button_label: "Entrar",
       loading_button_label: "Entrando…",
       link_text: "Já tem uma conta? Entre",
     },
     sign_up: {
       email_label: "E-mail",
+      email_input_placeholder: "Seu endereço de e-mail",
       password_label: "Senha",
+      password_input_placeholder: "Crie uma senha",
       button_label: "Criar conta",
       loading_button_label: "Criando…",
       link_text: "Não tem conta? Cadastre-se",
@@ -27,12 +31,14 @@ const ptBR = {
     },
     forgotten_password: {
       email_label: "E-mail",
+      email_input_placeholder: "Seu endereço de e-mail",
       button_label: "Enviar instruções",
       loading_button_label: "Enviando…",
       link_text: "Esqueceu sua senha?",
     },
     update_password: {
       password_label: "Nova senha",
+      password_input_placeholder: "Digite a nova senha",
       button_label: "Atualizar senha",
       loading_button_label: "Atualizando…",
     },
