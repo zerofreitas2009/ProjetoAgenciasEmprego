@@ -86,18 +86,18 @@ export default function Login() {
   }, [currentTheme]);
 
   return (
-    <div className="min-h-screen bg-white px-4 py-10 text-slate-900 dark:bg-[#020617] dark:text-slate-100">
-      <div className="mx-auto w-full max-w-md">
-        <div className="mb-6 flex items-center justify-start">
-          <Link
-            to="/"
-            className="group inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/60 px-3 py-2 text-sm font-medium text-slate-600 shadow-sm transition hover:bg-white hover:text-slate-900 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white"
-          >
-            <ArrowLeft className="h-4 w-4 transition group-hover:-translate-x-0.5" />
-            <span>Voltar para a Home</span>
-          </Link>
-        </div>
+    <div className="relative min-h-screen bg-white px-4 py-10 text-slate-900 dark:bg-[#020617] dark:text-slate-100">
+      {/* Discreet back control (fixed, icon-only) */}
+      <Link
+        to="/"
+        className="group fixed left-4 top-4 z-40 inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white/50 text-slate-500 shadow-sm backdrop-blur-md transition hover:bg-white hover:text-slate-900 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white"
+        title="Voltar para a Home"
+        aria-label="Voltar para a Home"
+      >
+        <ArrowLeft className="h-4 w-4 transition group-hover:-translate-x-0.5" />
+      </Link>
 
+      <div className="mx-auto w-full max-w-md">
         <div className="mb-8 text-center">
           <div className="relative mx-auto mb-5 inline-flex items-center justify-center">
             {/* Dark-mode glow behind the logo */}
