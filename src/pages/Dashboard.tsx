@@ -21,6 +21,7 @@ import {
   BriefcaseBusiness,
   Link as LinkIcon,
   Copy,
+  Wallet,
 } from "lucide-react";
 import { hr_NewJobForm as HrNewJobForm } from "@/components/ats/hr_NewJobForm";
 import { hr_JobCard as HrJobCard, type HrJob } from "@/components/ats/hr_JobCard";
@@ -50,6 +51,16 @@ export default function Dashboard() {
   const [isGeneratingLink, setIsGeneratingLink] = useState(false);
 
   const email = session?.user.email ?? "";
+
+  const roleQuery = useQuery({
+    queryKey: ["hr_role"],
+    enabled: !!session,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("get_hr_role");
+      if (error) throw error;
+      return (data as string) ?? null;
+    },
+  });
 
   const tenantIdQuery = useQuery({
     queryKey: ["hr_tenant_id"],
@@ -122,10 +133,15 @@ export default function Dashboard() {
           const days = (end - start) / (1000 * 60 * 60 * 24);
           return days;
         })
-        .filter((x): x is number => typeof x === "number" && Number.isFinite(x) && x >= 0);
+        .filter(
+          (x): x is number =>
+            typeof x === "number" && Number.isFinite(x) && x >= 0
+        );
 
       if (diffs.length === 0) return null;
-      return Math.round((diffs.reduce((a, b) => a + b, 0) / diffs.length) * 10) / 10;
+      return (
+        Math.round((diffs.reduce((a, b) => a + b, 0) / diffs.length) * 10) / 10
+      );
     },
   });
 
@@ -282,6 +298,19 @@ export default function Dashboard() {
           </div>
 
           <div className="flex items-center gap-2">
+            {roleQuery.data === "ADMIN" ? (
+              <Button
+                variant="secondary"
+                className="rounded-2xl bg-white/70 ring-1 ring-black/5 hover:bg-white"
+                asChild
+              >
+                <Link to="/finance">
+                  <Wallet className="mr-2 h-4 w-4" />
+                  Financeiro
+                </Link>
+              </Button>
+            ) : null}
+
             <Button
               variant="secondary"
               className="rounded-2xl bg-white/70 ring-1 ring-black/5 hover:bg-white"
@@ -312,7 +341,10 @@ export default function Dashboard() {
             <div className="text-xs font-semibold text-slate-700">Funil geral</div>
             <div className="mt-3 space-y-2">
               {(funnelQuery.data ?? []).slice(0, 4).map((x) => (
-                <div key={x.stage} className="flex items-center justify-between gap-2">
+                <div
+                  key={x.stage}
+                  className="flex items-center justify-between gap-2"
+                >
                   <span className="truncate text-sm text-slate-700">{x.stage}</span>
                   <Badge className="rounded-full bg-white text-slate-700 ring-1 ring-black/5">
                     {x.count}
