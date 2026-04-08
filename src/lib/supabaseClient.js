@@ -1,0 +1,7 @@
+import { createClient } from "@supabase/supabase-js";
+
+const SUPABASE_URL = "https://straooifibdvgcwpnies.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN0cmFvb2lmaWJkdmdjd3BuaWVzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM0NDI0OTIsImV4cCI6MjA4OTAxODQ5Mn0.oMl2DPe5hZtZRP15P0P7_56otheaAHcuQFyOi01rpfQ";
+
+export const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
