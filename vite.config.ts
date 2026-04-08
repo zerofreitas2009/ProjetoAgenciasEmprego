@@ -13,5 +13,10 @@ export default defineConfig(() => ({
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
+    // Avoid duplicate React copies under pnpm/yarn workspaces.
+    dedupe: ["react", "react-dom"],
+  },
+  optimizeDeps: {
+    include: ["react", "react-dom"],
   },
 }));
