@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Navigate, useSearchParams } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { Layout } from "@/components/Layout";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,21 +11,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { toast } from "@/hooks/use-toast";
-import { usePremium } from "@/components/premium/PremiumContext";
 import {
   Tabs,
   TabsContent,
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 import {
   Table,
   TableBody,
@@ -34,17 +25,25 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
-  Settings as SettingsIcon,
-  UserRound,
-  Users,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { toast } from "@/hooks/use-toast";
+import { usePremium } from "@/components/premium/PremiumContext";
+import {
   Building2,
-  ShieldAlert,
-  Upload,
   KeyRound,
   MailPlus,
+  Settings as SettingsIcon,
+  ShieldAlert,
   Trash2,
+  Upload,
+  UserRound,
+  Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -78,24 +77,6 @@ type TeamInvite = {
   accepted_at: string | null;
 };
 
-function AccessDeniedCard({ title, subtitle }: { title: string; subtitle: string }) {
-  return (
-    <Card className="rounded-[28px] p-6 hr-glass">
-      <div className="flex items-start gap-3">
-        <div className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-[hsl(var(--electric-indigo))]/10 text-[hsl(var(--electric-indigo))] ring-1 ring-[hsl(var(--electric-indigo))]/20">
-          <ShieldAlert className="h-5 w-5" />
-        </div>
-        <div>
-          <div className="text-base font-semibold tracking-tight">{title}</div>
-          <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-            {subtitle}
-          </div>
-        </div>
-      </div>
-    </Card>
-  );
-}
-
 function fileToDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -115,15 +96,53 @@ function isTrialLimitError(err: any) {
   );
 }
 
-export default function Settings() {
-  const { session, isLoading } = useSession();
+function SectionTitle({
+  icon: Icon,
+  title,
+  subtitle,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  title: string;
+  subtitle: string;
+}) {
+  return (
+    <div className="flex items-start gap-3">
+      <div className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[hsl(var(--primary))]/10 text-[hsl(var(--primary))] ring-1 ring-[hsl(var(--primary))]/20">
+        <Icon className="h-5 w-5" />
+      </div>
+      <div className="min-w-0">
+        <div className="text-base font-semibold tracking-tight text-slate-900 dark:text-white">
+          {title}
+        </div>
+        <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+          {subtitle}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AccessDeniedCard({
+  title,
+  subtitle,
+}: {
+  title: string;
+  subtitle: string;
+}) {
+  return (
+    <Card className="rounded-[28px] p-6 hr-glass">
+      <SectionTitle icon={ShieldAlert} title={title} subtitle={subtitle} />
+    </Card>
+  );
+}
+
+function SettingsContent() {
+  const queryClient = useQueryClient();
+  const { session } = useSession();
   const { openPremium } = usePremium();
   const [params, setParams] = useSearchParams();
 
-  const tab = (params.get("tab") ?? "profile") as
-    | "profile"
-    | "team"
-    | "brand";
+  const tab = (params.get("tab") ?? "profile") as "profile" | "team" | "brand";
 
   const roleQuery = useQuery({
     queryKey: ["hr_role"],
@@ -170,950 +189,629 @@ export default function Settings() {
     },
   });
 
-  const teamQuery = useQuery({
-    queryKey: ["hr_team_members"],
-    enabled: !!session && isAdmin,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("hr_profiles")
-        .select("id, full_name, role, job_title, email")
-        .order("full_name", { ascending: true })
-        .limit(200);
-      if (error) throw error;
-      return (data ?? []) as Pick<
-        HrProfile,
-        "id" | "full_name" | "role" | "job_title" | "email"
-      >[];
-    },
-  });
-
   const invitesQuery = useQuery({
     queryKey: ["hr_team_invites"],
     enabled: !!session && isAdmin,
     queryFn: async () => {
+      const { data: tenantId, error: tenantErr } = await supabase.rpc(
+        "get_hr_tenant"
+      );
+      if (tenantErr) throw tenantErr;
+
       const { data, error } = await supabase
         .from("hr_team_invites")
         .select("id, email, role, created_at, accepted_at")
-        .order("created_at", { ascending: false })
-        .limit(200);
+        .eq("tenant_id", tenantId as string)
+        .order("created_at", { ascending: false });
+
       if (error) throw error;
       return (data ?? []) as TeamInvite[];
     },
   });
 
-  // Profile form state
-  const [fullName, setFullName] = useState("");
-  const [jobTitle, setJobTitle] = useState("");
-  const [email, setEmail] = useState("");
-  const [avatarDataUrl, setAvatarDataUrl] = useState<string | null>(null);
-
-  // Brand form state
-  const [agencyName, setAgencyName] = useState("");
-  const [slogan, setSlogan] = useState("");
-  const [logoDataUrl, setLogoDataUrl] = useState<string | null>(null);
-
-  // Password dialog
-  const [pwOpen, setPwOpen] = useState(false);
-  const [newPassword, setNewPassword] = useState("");
-  const [newPassword2, setNewPassword2] = useState("");
-  const [pwSaving, setPwSaving] = useState(false);
-
-  // Invite dialog
-  const [inviteOpen, setInviteOpen] = useState(false);
-  const [inviteEmail, setInviteEmail] = useState("");
-  const [inviteRole, setInviteRole] = useState<"ADMIN" | "RECRUITER">(
-    "RECRUITER"
-  );
-  const [inviteSaving, setInviteSaving] = useState(false);
-
+  const [profileFullName, setProfileFullName] = useState("");
+  const [profileJobTitle, setProfileJobTitle] = useState("");
+  const [profileAvatar, setProfileAvatar] = useState<string | null>(null);
   const avatarInputRef = useRef<HTMLInputElement | null>(null);
-  const logoInputRef = useRef<HTMLInputElement | null>(null);
 
-  useEffect(() => {
+  const [newPassword, setNewPassword] = useState("");
+
+  const [tenantName, setTenantName] = useState("");
+  const [tenantSlogan, setTenantSlogan] = useState("");
+  const [tenantLogo, setTenantLogo] = useState<string | null>(null);
+  const tenantLogoInputRef = useRef<HTMLInputElement | null>(null);
+
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteRole, setInviteRole] = useState<"RECRUITER" | "ADMIN">("RECRUITER");
+
+  // hydrate local state
+  useMemo(() => {
     const p = profileQuery.data;
     if (!p) return;
-    setFullName(p.full_name ?? "");
-    setJobTitle(p.job_title ?? "");
-    setAvatarDataUrl(p.avatar_data_url ?? null);
-    setEmail(session?.user.email ?? p.email ?? "");
-  }, [profileQuery.data, session?.user.email]);
+    setProfileFullName((v) => (v ? v : p.full_name ?? ""));
+    setProfileJobTitle((v) => (v ? v : p.job_title ?? ""));
+    setProfileAvatar((v) => (v ? v : p.avatar_data_url ?? null));
+  }, [profileQuery.data]);
 
-  useEffect(() => {
+  useMemo(() => {
     const t = tenantQuery.data;
     if (!t) return;
-    setAgencyName(t.name ?? "");
-    setSlogan(t.slogan ?? "");
-    setLogoDataUrl(t.logo_data_url ?? null);
+    setTenantName((v) => (v ? v : t.name ?? ""));
+    setTenantSlogan((v) => (v ? v : t.slogan ?? ""));
+    setTenantLogo((v) => (v ? v : t.logo_data_url ?? null));
   }, [tenantQuery.data]);
 
-  const allowedTabs = useMemo(() => {
-    return isAdmin ? ["profile", "team", "brand"] : ["profile"];
-  }, [isAdmin]);
+  async function onPickAvatar(file: File | null) {
+    if (!file) return;
+    const url = await fileToDataUrl(file);
+    setProfileAvatar(url);
+  }
 
-  useEffect(() => {
-    if (!allowedTabs.includes(tab)) {
-      setParams((prev) => {
-        const p = new URLSearchParams(prev);
-        p.set("tab", "profile");
-        return p;
-      });
-    }
-  }, [allowedTabs, setParams, tab]);
+  async function onPickTenantLogo(file: File | null) {
+    if (!file) return;
+    const url = await fileToDataUrl(file);
+    setTenantLogo(url);
+  }
 
   async function saveProfile() {
     if (!session) return;
 
-    try {
-      // Update auth email if changed (may require confirmation depending on project settings)
-      const currentEmail = session.user.email ?? "";
-      const nextEmail = email.trim();
-      if (nextEmail && nextEmail !== currentEmail) {
-        const { error } = await supabase.auth.updateUser({ email: nextEmail });
-        if (error) throw error;
-      }
+    const { error } = await supabase
+      .from("hr_profiles")
+      .update({
+        full_name: profileFullName.trim() || null,
+        job_title: profileJobTitle.trim() || null,
+        avatar_data_url: profileAvatar,
+      })
+      .eq("id", session.user.id);
 
-      const { error } = await supabase
-        .from("hr_profiles")
-        .update({
-          full_name: fullName.trim() ? fullName.trim() : null,
-          job_title: jobTitle.trim() ? jobTitle.trim() : null,
-          avatar_data_url: avatarDataUrl,
-          email: nextEmail || null,
-        })
-        .eq("id", session.user.id);
-
-      if (error) throw error;
-
-      toast({
-        title: "Perfil atualizado",
-        description: "Suas informações foram salvas com sucesso.",
-      });
-      profileQuery.refetch();
-    } catch (e: any) {
+    if (error) {
       toast({
         title: "Não foi possível salvar",
-        description: e?.message ?? String(e),
+        description: error.message,
         variant: "destructive",
       });
+      return;
     }
+
+    await queryClient.invalidateQueries({ queryKey: ["hr_profile_me"] });
+    toast({ title: "Perfil atualizado", description: "Alterações salvas com sucesso." });
   }
 
-  async function saveBrand() {
-    if (!session) return;
+  async function savePassword() {
+    if (!newPassword.trim()) return;
 
-    try {
-      const { data: tenantId, error: tenantErr } = await supabase.rpc(
-        "get_hr_tenant"
-      );
-      if (tenantErr) throw tenantErr;
+    const { error } = await supabase.auth.updateUser({
+      password: newPassword,
+    });
 
-      const { error } = await supabase
-        .from("hr_tenants")
-        .update({
-          name: agencyName.trim() ? agencyName.trim() : "Agência",
-          slogan: slogan.trim() ? slogan.trim() : null,
-          logo_data_url: logoDataUrl,
-        })
-        .eq("id", tenantId as string);
-
-      if (error) throw error;
-
+    if (error) {
       toast({
-        title: "Identidade atualizada",
-        description: "Sua marca foi salva e já aparece no header.",
-      });
-      tenantQuery.refetch();
-    } catch (e: any) {
-      toast({
-        title: "Não foi possível salvar",
-        description: e?.message ?? String(e),
+        title: "Não foi possível atualizar a senha",
+        description: error.message,
         variant: "destructive",
       });
+      return;
     }
+
+    setNewPassword("");
+    toast({ title: "Senha atualizada", description: "Sua nova senha já está ativa." });
   }
 
-  async function changePassword() {
-    try {
-      if (!newPassword || newPassword.length < 8) {
-        toast({
-          title: "Senha fraca",
-          description: "Use pelo menos 8 caracteres.",
-          variant: "destructive",
-        });
-        return;
-      }
-      if (newPassword !== newPassword2) {
-        toast({
-          title: "Senhas não conferem",
-          description: "Confirme a senha novamente.",
-          variant: "destructive",
-        });
-        return;
-      }
+  async function saveTenant() {
+    const tenantId = tenantQuery.data?.id;
+    if (!tenantId) return;
 
-      setPwSaving(true);
-      const { error } = await supabase.auth.updateUser({ password: newPassword });
-      if (error) throw error;
+    const { error } = await supabase
+      .from("hr_tenants")
+      .update({
+        name: tenantName.trim() || "Agência",
+        slogan: tenantSlogan.trim() || null,
+        logo_data_url: tenantLogo,
+      })
+      .eq("id", tenantId);
 
+    if (error) {
       toast({
-        title: "Senha alterada",
-        description: "Sua senha foi atualizada com sucesso.",
-      });
-
-      setPwOpen(false);
-      setNewPassword("");
-      setNewPassword2("");
-    } catch (e: any) {
-      toast({
-        title: "Não foi possível alterar a senha",
-        description: e?.message ?? String(e),
+        title: "Não foi possível salvar a marca",
+        description: error.message,
         variant: "destructive",
       });
-    } finally {
-      setPwSaving(false);
+      return;
     }
+
+    await queryClient.invalidateQueries({ queryKey: ["hr_tenant_brand"] });
+    await queryClient.invalidateQueries({ queryKey: ["hr_tenant_branding"] });
+    await queryClient.invalidateQueries({ queryKey: ["hr_agency_name_for_premium"] });
+
+    toast({ title: "Marca atualizada", description: "Sua identidade foi salva." });
   }
 
   async function createInvite() {
-    try {
-      const mail = inviteEmail.trim().toLowerCase();
-      if (!mail || !mail.includes("@")) {
-        toast({
-          title: "E-mail inválido",
-          description: "Informe um e-mail válido para enviar o convite.",
-          variant: "destructive",
-        });
-        return;
-      }
+    const tenantId = tenantQuery.data?.id;
+    if (!tenantId) return;
 
-      setInviteSaving(true);
-      const { data: tenantId, error: tenantErr } = await supabase.rpc(
-        "get_hr_tenant"
-      );
-      if (tenantErr) throw tenantErr;
-
-      const { error } = await supabase.from("hr_team_invites").insert({
-        tenant_id: tenantId as string,
-        email: mail,
-        role: inviteRole,
-        invited_by: session?.user.id,
-      });
-
-      if (error) throw error;
-
+    const email = inviteEmail.trim().toLowerCase();
+    if (!email.includes("@")) {
       toast({
-        title: "Convite criado",
-        description: "O convite foi registrado. (Envio por e-mail pode ser integrado depois.)",
-      });
-
-      setInviteOpen(false);
-      setInviteEmail("");
-      setInviteRole("RECRUITER");
-      invitesQuery.refetch();
-    } catch (e: any) {
-      if (isTrialLimitError(e)) {
-        openPremium("limit");
-        toast({
-          title: "Limite do trial atingido",
-          description:
-            "Para adicionar mais membros na equipe, ative o acesso vitalício.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      toast({
-        title: "Não foi possível convidar",
-        description: e?.message ?? String(e),
+        title: "E-mail inválido",
+        description: "Informe um e-mail válido para enviar o convite.",
         variant: "destructive",
       });
-    } finally {
-      setInviteSaving(false);
+      return;
     }
+
+    const { error } = await supabase.from("hr_team_invites").insert({
+      tenant_id: tenantId,
+      email,
+      role: inviteRole,
+      invited_by: session?.user.id ?? null,
+    });
+
+    if (error) {
+      if (isTrialLimitError(error)) {
+        openPremium("limit");
+        toast({
+          title: "Limite do Trial",
+          description: "Seu plano atual limita o tamanho da equipe. Faça upgrade para convidar mais pessoas.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      toast({
+        title: "Não foi possível enviar",
+        description: error.message,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setInviteEmail("");
+    await queryClient.invalidateQueries({ queryKey: ["hr_team_invites"] });
+    toast({ title: "Convite registrado", description: "O convite foi salvo no sistema." });
   }
 
   async function deleteInvite(inviteId: string) {
-    try {
-      const { error } = await supabase
-        .from("hr_team_invites")
-        .delete()
-        .eq("id", inviteId);
-      if (error) throw error;
-      invitesQuery.refetch();
-      toast({
-        title: "Convite removido",
-        description: "O convite foi revogado com sucesso.",
-      });
-    } catch (e: any) {
+    const { error } = await supabase.from("hr_team_invites").delete().eq("id", inviteId);
+    if (error) {
       toast({
         title: "Não foi possível remover",
-        description: e?.message ?? String(e),
+        description: error.message,
         variant: "destructive",
       });
+      return;
     }
+
+    await queryClient.invalidateQueries({ queryKey: ["hr_team_invites"] });
+    toast({ title: "Convite removido", description: "O convite foi excluído." });
   }
 
-  if (!isLoading && !session) return <Navigate to="/login" replace />;
-
-  return (
-    <Layout>
-      <motion.div
-        initial="hidden"
-        animate="show"
-        variants={fadeUp}
-        transition={{ type: "spring", stiffness: 260, damping: 24 }}
-        className="space-y-4"
-      >
+  const pageHeader = (
+    <div className="mb-6">
+      <div className="flex items-center gap-2">
+        <div className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-[hsl(var(--electric-indigo))]/10 text-[hsl(var(--electric-indigo))] ring-1 ring-[hsl(var(--electric-indigo))]/20">
+          <SettingsIcon className="h-5 w-5" />
+        </div>
         <div>
-          <div className="inline-flex items-center gap-2 rounded-full bg-[hsl(var(--primary))]/10 px-3 py-1 text-xs font-semibold text-[hsl(var(--primary))] ring-1 ring-[hsl(var(--primary))]/15 dark:bg-[hsl(var(--primary))]/15 dark:text-white">
-            <SettingsIcon className="h-3.5 w-3.5" />
-            Configurações & Equipe
-          </div>
-          <h1 className="mt-3 text-2xl font-semibold tracking-tight">Settings</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Configurações</h1>
           <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-            Perfil, membros da agência e identidade da marca — com controle de
-            acesso por role.
+            Ajuste seu perfil, time e a marca do seu tenant.
           </p>
         </div>
+      </div>
+    </div>
+  );
 
-        <Tabs
-          value={tab}
-          onValueChange={(v) => {
-            setParams((prev) => {
-              const p = new URLSearchParams(prev);
-              p.set("tab", v);
-              return p;
-            });
-          }}
-          className="grid gap-4 lg:grid-cols-[280px_1fr]"
-        >
-          <TabsList className="h-fit w-full flex-col items-stretch gap-2 rounded-[28px] bg-[#F8FAFC]/80 p-2 ring-1 ring-slate-200 backdrop-blur-md dark:bg-white/5 dark:ring-white/10">
-            <TabsTrigger
-              value="profile"
-              className={cn(
-                "justify-start rounded-2xl px-4 py-3 text-left",
-                "data-[state=active]:bg-[hsl(var(--electric-indigo))] data-[state=active]:text-white",
-                "data-[state=active]:shadow-[0_18px_55px_-36px_rgba(111,0,255,0.95)]"
-              )}
-            >
-              <UserRound className="mr-3 h-4 w-4" />
-              Perfil pessoal
-            </TabsTrigger>
+  return (
+    <motion.div
+      initial="hidden"
+      animate="show"
+      variants={fadeUp}
+      transition={{ type: "spring", stiffness: 260, damping: 24 }}
+    >
+      {pageHeader}
 
-            {isAdmin ? (
-              <TabsTrigger
-                value="team"
-                className={cn(
-                  "justify-start rounded-2xl px-4 py-3 text-left",
-                  "data-[state=active]:bg-[hsl(var(--electric-indigo))] data-[state=active]:text-white",
-                  "data-[state=active]:shadow-[0_18px_55px_-36px_rgba(111,0,255,0.95)]"
-                )}
-              >
-                <Users className="mr-3 h-4 w-4" />
-                Gestão de equipe
-              </TabsTrigger>
-            ) : null}
+      <Tabs
+        value={tab}
+        onValueChange={(v) => setParams({ tab: v })}
+        className="w-full"
+      >
+        <TabsList className="h-11 w-full justify-start gap-1 rounded-2xl bg-white/70 p-1 ring-1 ring-slate-200 dark:bg-white/5 dark:ring-white/10">
+          <TabsTrigger
+            value="profile"
+            className="rounded-xl data-[state=active]:bg-white data-[state=active]:shadow-sm dark:data-[state=active]:bg-white/10"
+          >
+            <UserRound className="mr-2 h-4 w-4" />
+            Perfil
+          </TabsTrigger>
+          <TabsTrigger
+            value="team"
+            className="rounded-xl data-[state=active]:bg-white data-[state=active]:shadow-sm dark:data-[state=active]:bg-white/10"
+          >
+            <Users className="mr-2 h-4 w-4" />
+            Time
+          </TabsTrigger>
+          <TabsTrigger
+            value="brand"
+            className="rounded-xl data-[state=active]:bg-white data-[state=active]:shadow-sm dark:data-[state=active]:bg-white/10"
+          >
+            <Building2 className="mr-2 h-4 w-4" />
+            Marca
+          </TabsTrigger>
+        </TabsList>
 
-            {isAdmin ? (
-              <TabsTrigger
-                value="brand"
-                className={cn(
-                  "justify-start rounded-2xl px-4 py-3 text-left",
-                  "data-[state=active]:bg-[hsl(var(--electric-indigo))] data-[state=active]:text-white",
-                  "data-[state=active]:shadow-[0_18px_55px_-36px_rgba(111,0,255,0.95)]"
-                )}
-              >
-                <Building2 className="mr-3 h-4 w-4" />
-                Identidade da agência
-              </TabsTrigger>
-            ) : null}
-
-            <div className="px-3 pt-2 text-xs text-slate-500 dark:text-slate-400">
-              Role atual: <b className="text-slate-700 dark:text-slate-200">{roleQuery.data ?? "—"}</b>
-            </div>
-          </TabsList>
-
-          {/* Perfil */}
-          <TabsContent value="profile" className="m-0">
+        <TabsContent value="profile" className="mt-5">
+          <div className="grid gap-5 lg:grid-cols-2">
             <Card className="rounded-[28px] p-6 hr-glass">
-              <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
-                <div className="flex items-start gap-4">
-                  <Avatar className="h-16 w-16 rounded-3xl ring-1 ring-slate-200 dark:ring-white/10">
-                    <AvatarImage src={avatarDataUrl ?? undefined} />
-                    <AvatarFallback className="rounded-3xl bg-white/60 text-slate-700 dark:bg-white/10 dark:text-slate-200">
-                      {(fullName || session?.user.email || "U")
-                        .slice(0, 1)
-                        .toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
+              <SectionTitle
+                icon={UserRound}
+                title="Seu perfil"
+                subtitle="Essas informações aparecem para sua equipe dentro do tenant."
+              />
 
-                  <div>
-                    <div className="text-sm font-semibold">Foto</div>
-                    <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                      Upload rápido para personalizar seu perfil.
-                    </div>
-                    <input
-                      ref={avatarInputRef}
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={async (e) => {
-                        const f = e.target.files?.[0];
-                        if (!f) return;
-                        try {
-                          if (f.size > 1024 * 1024) {
-                            throw new Error("Use uma imagem de até 1MB.");
-                          }
-                          const url = await fileToDataUrl(f);
-                          setAvatarDataUrl(url);
-                        } catch (err: any) {
-                          toast({
-                            title: "Upload falhou",
-                            description: err?.message ?? String(err),
-                            variant: "destructive",
-                          });
-                        }
-                      }}
-                    />
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        className="h-10 rounded-xl hr-btn-secondary"
-                        onClick={() => avatarInputRef.current?.click()}
-                      >
-                        <Upload className="mr-2 h-4 w-4" />
-                        Enviar foto
-                      </Button>
-                      {avatarDataUrl ? (
-                        <Button
-                          type="button"
-                          variant="secondary"
-                          className="h-10 rounded-xl hr-btn-secondary"
-                          onClick={() => setAvatarDataUrl(null)}
-                        >
-                          Remover
-                        </Button>
-                      ) : null}
-                    </div>
+              <div className="mt-5 flex items-center gap-4">
+                <Avatar className="h-14 w-14 rounded-2xl">
+                  <AvatarImage src={profileAvatar ?? ""} />
+                  <AvatarFallback className="rounded-2xl bg-slate-100 text-slate-700 dark:bg-white/10 dark:text-slate-200">
+                    {(profileQuery.data?.full_name ?? session?.user.email ?? "U")
+                      .slice(0, 2)
+                      .toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+
+                <div className="min-w-0 flex-1">
+                  <div className="text-sm font-semibold text-slate-900 dark:text-white">
+                    {profileQuery.data?.email ?? session?.user.email}
                   </div>
-                </div>
-
-                <Dialog open={pwOpen} onOpenChange={setPwOpen}>
-                  <DialogTrigger asChild>
-                    <Button
-                      type="button"
-                      className="h-10 rounded-xl bg-[hsl(var(--electric-indigo))] text-white shadow-[0_16px_50px_-34px_rgba(111,0,255,0.9)]"
-                    >
-                      <KeyRound className="mr-2 h-4 w-4" />
-                      Alterar senha
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="max-w-md rounded-[28px] p-0 hr-glass">
-                    <div className="p-6">
-                      <DialogHeader>
-                        <DialogTitle>Alterar senha</DialogTitle>
-                      </DialogHeader>
-
-                      <div className="mt-4 space-y-3">
-                        <div>
-                          <Label className="text-xs font-semibold text-slate-600 dark:text-slate-300">
-                            Nova senha
-                          </Label>
-                          <Input
-                            type="password"
-                            value={newPassword}
-                            onChange={(e) => setNewPassword(e.target.value)}
-                            className="mt-2 h-11 rounded-2xl bg-white/70 ring-1 ring-slate-200 backdrop-blur-md dark:bg-white/5 dark:ring-white/10"
-                          />
-                        </div>
-                        <div>
-                          <Label className="text-xs font-semibold text-slate-600 dark:text-slate-300">
-                            Confirmar senha
-                          </Label>
-                          <Input
-                            type="password"
-                            value={newPassword2}
-                            onChange={(e) => setNewPassword2(e.target.value)}
-                            className="mt-2 h-11 rounded-2xl bg-white/70 ring-1 ring-slate-200 backdrop-blur-md dark:bg-white/5 dark:ring-white/10"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="mt-6 flex items-center justify-between gap-2">
-                        <Button
-                          type="button"
-                          variant="secondary"
-                          className="h-11 rounded-xl hr-btn-secondary"
-                          onClick={() => setPwOpen(false)}
-                        >
-                          Cancelar
-                        </Button>
-                        <Button
-                          type="button"
-                          className="h-11 rounded-xl bg-[hsl(var(--electric-indigo))] text-white"
-                          onClick={changePassword}
-                          disabled={pwSaving}
-                        >
-                          {pwSaving ? "Salvando…" : "Atualizar"}
-                        </Button>
-                      </div>
-                    </div>
-                  </DialogContent>
-                </Dialog>
-              </div>
-
-              <div className="mt-6 grid gap-4 sm:grid-cols-2">
-                <div>
-                  <Label className="text-xs font-semibold text-slate-600 dark:text-slate-300">
-                    Nome
-                  </Label>
-                  <Input
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    className="mt-2 h-11 rounded-2xl bg-white/70 ring-1 ring-slate-200 backdrop-blur-md dark:bg-white/5 dark:ring-white/10"
-                    placeholder="Seu nome"
-                  />
-                </div>
-
-                <div>
-                  <Label className="text-xs font-semibold text-slate-600 dark:text-slate-300">
-                    Cargo
-                  </Label>
-                  <Input
-                    value={jobTitle}
-                    onChange={(e) => setJobTitle(e.target.value)}
-                    className="mt-2 h-11 rounded-2xl bg-white/70 ring-1 ring-slate-200 backdrop-blur-md dark:bg-white/5 dark:ring-white/10"
-                    placeholder="Ex.: Recrutador(a)"
-                  />
-                </div>
-
-                <div className="sm:col-span-2">
-                  <Label className="text-xs font-semibold text-slate-600 dark:text-slate-300">
-                    E-mail
-                  </Label>
-                  <Input
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="mt-2 h-11 rounded-2xl bg-white/70 ring-1 ring-slate-200 backdrop-blur-md dark:bg-white/5 dark:ring-white/10"
-                    placeholder="seu@email.com"
-                    inputMode="email"
-                  />
-                  <div className="mt-2 text-xs text-slate-500 dark:text-slate-400">
-                    Trocar e-mail pode exigir confirmação (dependendo da política do
-                    projeto).
-                  </div>
-                </div>
-
-                <div className="sm:col-span-2">
-                  <Label className="text-xs font-semibold text-slate-600 dark:text-slate-300">
-                    Role
-                  </Label>
-                  <div className="mt-2 inline-flex items-center gap-2">
-                    <Badge className="rounded-full bg-[hsl(var(--primary))]/10 text-[hsl(var(--primary))] ring-1 ring-[hsl(var(--primary))]/15 dark:bg-[hsl(var(--primary))]/15 dark:text-white">
-                      {roleQuery.data ?? "—"}
+                  <div className="mt-1 flex items-center gap-2">
+                    <Badge className="rounded-full bg-[hsl(var(--primary))]/10 text-[hsl(var(--primary))] ring-1 ring-[hsl(var(--primary))]/15">
+                      {String(profileQuery.data?.role ?? "MEMBER")}
                     </Badge>
-                    <span className="text-xs text-slate-500 dark:text-slate-400">
-                      Controlado pelo Admin da agência.
-                    </span>
+                    {profileQuery.isLoading ? (
+                      <span className="text-xs text-slate-500 dark:text-slate-400">
+                        Carregando…
+                      </span>
+                    ) : null}
                   </div>
                 </div>
-              </div>
 
-              <div className="mt-6 flex items-center justify-between gap-3">
-                <div className="text-xs text-slate-500 dark:text-slate-400">
-                  As informações ficam vinculadas ao seu tenant via RLS.
-                </div>
+                <input
+                  ref={avatarInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => void onPickAvatar(e.target.files?.[0] ?? null)}
+                />
+
                 <Button
                   type="button"
-                  className="h-11 rounded-xl bg-[hsl(var(--electric-indigo))] text-white shadow-[0_18px_60px_-34px_rgba(111,0,255,0.95)]"
-                  onClick={saveProfile}
-                  disabled={profileQuery.isFetching}
+                  variant="secondary"
+                  className="h-10 rounded-xl hr-btn-secondary"
+                  onClick={() => avatarInputRef.current?.click()}
                 >
-                  Salvar alterações
+                  <Upload className="mr-2 h-4 w-4" />
+                  Foto
                 </Button>
               </div>
+
+              <div className="mt-6 grid gap-4">
+                <div className="space-y-2">
+                  <Label>Nome</Label>
+                  <Input
+                    value={profileFullName}
+                    onChange={(e) => setProfileFullName(e.target.value)}
+                    placeholder="Ex.: Maria Souza"
+                    className="h-11 rounded-2xl"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Cargo</Label>
+                  <Input
+                    value={profileJobTitle}
+                    onChange={(e) => setProfileJobTitle(e.target.value)}
+                    placeholder="Ex.: Tech Recruiter"
+                    className="h-11 rounded-2xl"
+                  />
+                </div>
+
+                <div className="pt-1">
+                  <Button
+                    type="button"
+                    className="h-11 w-full rounded-2xl hr-btn-primary"
+                    onClick={() => void saveProfile()}
+                    disabled={profileQuery.isLoading}
+                  >
+                    Salvar perfil
+                  </Button>
+                </div>
+              </div>
             </Card>
-          </TabsContent>
 
-          {/* Equipe */}
-          <TabsContent value="team" className="m-0">
-            {!isAdmin ? (
-              <AccessDeniedCard
-                title="Acesso negado"
-                subtitle="A área de equipe é restrita a usuários Admin."
+            <Card className="rounded-[28px] p-6 hr-glass">
+              <SectionTitle
+                icon={KeyRound}
+                title="Segurança"
+                subtitle="Atualize sua senha sempre que precisar."
               />
-            ) : (
-              <div className="space-y-4">
-                <Card className="rounded-[28px] p-6 hr-glass">
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                    <div>
-                      <div className="text-base font-semibold tracking-tight">
-                        Membros da agência
-                      </div>
-                      <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                        Visualize quem tem acesso e convide novos membros.
-                      </div>
-                    </div>
 
-                    <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
-                      <DialogTrigger asChild>
-                        <Button
-                          type="button"
-                          className="h-10 rounded-xl bg-[hsl(var(--electric-indigo))] text-white shadow-[0_16px_50px_-34px_rgba(111,0,255,0.9)]"
-                        >
-                          <MailPlus className="mr-2 h-4 w-4" />
-                          + Convidar membro
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent className="max-w-md rounded-[28px] p-0 hr-glass">
-                        <div className="p-6">
-                          <DialogHeader>
-                            <DialogTitle>Convidar membro</DialogTitle>
-                          </DialogHeader>
+              <div className="mt-6 grid gap-4">
+                <div className="space-y-2">
+                  <Label>Nova senha</Label>
+                  <Input
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="Mínimo 8 caracteres"
+                    className="h-11 rounded-2xl"
+                    autoComplete="new-password"
+                  />
+                </div>
 
-                          <div className="mt-4 space-y-3">
-                            <div>
-                              <Label className="text-xs font-semibold text-slate-600 dark:text-slate-300">
-                                E-mail
-                              </Label>
-                              <Input
-                                value={inviteEmail}
-                                onChange={(e) => setInviteEmail(e.target.value)}
-                                className="mt-2 h-11 rounded-2xl bg-white/70 ring-1 ring-slate-200 backdrop-blur-md dark:bg-white/5 dark:ring-white/10"
-                                placeholder="membro@agencia.com"
-                                inputMode="email"
-                              />
+                <Button
+                  type="button"
+                  className="h-11 rounded-2xl hr-btn-primary"
+                  onClick={() => void savePassword()}
+                  disabled={newPassword.trim().length < 8}
+                >
+                  Atualizar senha
+                </Button>
+
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Dica: se você estiver com a conta pendente de confirmação, finalize
+                  pelo e-mail antes de trocar informações.
+                </p>
+              </div>
+            </Card>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="team" className="mt-5">
+          {!isAdmin ? (
+            <AccessDeniedCard
+              title="Apenas administradores"
+              subtitle="Somente Admins podem convidar membros para o time."
+            />
+          ) : (
+            <div className="grid gap-5 lg:grid-cols-[1fr_1.2fr]">
+              <Card className="rounded-[28px] p-6 hr-glass">
+                <SectionTitle
+                  icon={MailPlus}
+                  title="Convidar para o time"
+                  subtitle="Registre convites para trazer recrutadores para o seu tenant."
+                />
+
+                <div className="mt-6 grid gap-4">
+                  <div className="space-y-2">
+                    <Label>E-mail</Label>
+                    <Input
+                      value={inviteEmail}
+                      onChange={(e) => setInviteEmail(e.target.value)}
+                      placeholder="pessoa@empresa.com"
+                      className="h-11 rounded-2xl"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Perfil</Label>
+                    <Select
+                      value={inviteRole}
+                      onValueChange={(v) => setInviteRole(v as any)}
+                    >
+                      <SelectTrigger className="h-11 rounded-2xl">
+                        <SelectValue placeholder="Selecione" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="RECRUITER">Recruiter</SelectItem>
+                        <SelectItem value="ADMIN">Admin</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <Button
+                    type="button"
+                    className="h-11 rounded-2xl hr-btn-primary"
+                    onClick={() => void createInvite()}
+                    disabled={inviteEmail.trim().length === 0 || invitesQuery.isLoading}
+                  >
+                    Enviar convite
+                  </Button>
+
+                  <div className="rounded-2xl bg-white/60 p-3 text-xs text-slate-600 ring-1 ring-slate-200 dark:bg-white/5 dark:text-slate-300 dark:ring-white/10">
+                    Se o Trial bloquear novos convites, você verá a tela de Upgrade.
+                  </div>
+                </div>
+              </Card>
+
+              <Card className="rounded-[28px] p-6 hr-glass">
+                <SectionTitle
+                  icon={Users}
+                  title="Convites registrados"
+                  subtitle="Lista dos convites vinculados ao seu tenant."
+                />
+
+                <div className="mt-5 overflow-hidden rounded-2xl ring-1 ring-slate-200 dark:ring-white/10">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-slate-50/80 dark:bg-white/5">
+                        <TableHead>E-mail</TableHead>
+                        <TableHead>Perfil</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="text-right">Ações</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {(invitesQuery.data ?? []).length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={4}>
+                            <div className="py-6 text-center text-sm text-slate-600 dark:text-slate-300">
+                              Nenhum convite ainda.
                             </div>
-
-                            <div>
-                              <Label className="text-xs font-semibold text-slate-600 dark:text-slate-300">
-                                Role
-                              </Label>
-                              <div className="mt-2 grid grid-cols-2 gap-2">
-                                {([
-                                  { value: "RECRUITER", label: "Recrutador" },
-                                  { value: "ADMIN", label: "Admin" },
-                                ] as const).map((r) => (
-                                  <button
-                                    key={r.value}
-                                    type="button"
-                                    onClick={() => setInviteRole(r.value)}
-                                    className={cn(
-                                      "rounded-2xl px-3 py-3 text-sm font-semibold ring-1 transition",
-                                      inviteRole === r.value
-                                        ? "bg-[hsl(var(--electric-indigo))] text-white ring-[hsl(var(--electric-indigo))]/40"
-                                        : "bg-white/60 text-slate-700 ring-slate-200 hover:bg-white dark:bg-white/5 dark:text-slate-200 dark:ring-white/10 dark:hover:bg-white/10"
-                                    )}
-                                  >
-                                    {r.label}
-                                  </button>
-                                ))}
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="mt-6 flex items-center justify-between gap-2">
-                            <Button
-                              type="button"
-                              variant="secondary"
-                              className="h-11 rounded-xl hr-btn-secondary"
-                              onClick={() => setInviteOpen(false)}
-                            >
-                              Cancelar
-                            </Button>
-                            <Button
-                              type="button"
-                              className="h-11 rounded-xl bg-[hsl(var(--electric-indigo))] text-white"
-                              onClick={createInvite}
-                              disabled={inviteSaving}
-                            >
-                              {inviteSaving ? "Criando…" : "Criar convite"}
-                            </Button>
-                          </div>
-
-                          <div className="mt-3 text-xs text-slate-500 dark:text-slate-400">
-                            Esse fluxo registra o convite no sistema. Integração de
-                            envio por e-mail pode ser ativada depois.
-                          </div>
-                        </div>
-                      </DialogContent>
-                    </Dialog>
-                  </div>
-
-                  <div className="mt-5 overflow-hidden rounded-2xl ring-1 ring-slate-200 dark:ring-white/10">
-                    <Table>
-                      <TableHeader>
-                        <TableRow className="bg-[#F8FAFC]/80 dark:bg-white/5">
-                          <TableHead className="text-slate-600 dark:text-slate-300">
-                            Nome
-                          </TableHead>
-                          <TableHead className="text-slate-600 dark:text-slate-300">
-                            Cargo
-                          </TableHead>
-                          <TableHead className="text-slate-600 dark:text-slate-300">
-                            Role
-                          </TableHead>
-                          <TableHead className="text-slate-600 dark:text-slate-300">
-                            E-mail
-                          </TableHead>
-                          <TableHead className="text-right text-slate-600 dark:text-slate-300">
-                            ID
-                          </TableHead>
+                          </TableCell>
                         </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {(teamQuery.data ?? []).length === 0 ? (
-                          <TableRow>
-                            <TableCell colSpan={5} className="py-10 text-center">
-                              <div className="text-sm text-slate-600 dark:text-slate-300">
-                                Nenhum membro encontrado.
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ) : (
-                          (teamQuery.data ?? []).map((m) => (
-                            <TableRow
-                              key={m.id}
-                              className="transition hover:bg-[#F8FAFC]/80 dark:hover:bg-white/5"
-                            >
+                      ) : (
+                        (invitesQuery.data ?? []).map((inv) => {
+                          const accepted = !!inv.accepted_at;
+                          return (
+                            <TableRow key={inv.id}>
                               <TableCell className="font-medium">
-                                {m.full_name ?? "—"}
+                                {inv.email}
                               </TableCell>
-                              <TableCell className="text-slate-600 dark:text-slate-300">
-                                {m.job_title ?? "—"}
-                              </TableCell>
+                              <TableCell>{inv.role}</TableCell>
                               <TableCell>
-                                <Badge className="rounded-full bg-white/60 text-slate-700 ring-1 ring-slate-200 dark:bg-white/10 dark:text-slate-200 dark:ring-white/10">
-                                  {m.role ?? "—"}
-                                </Badge>
-                              </TableCell>
-                              <TableCell className="text-slate-600 dark:text-slate-300">
-                                {m.email ?? "—"}
-                              </TableCell>
-                              <TableCell className="text-right text-xs text-slate-500 dark:text-slate-400">
-                                {m.id.slice(0, 8)}…
-                              </TableCell>
-                            </TableRow>
-                          ))
-                        )}
-                      </TableBody>
-                    </Table>
-                  </div>
-                </Card>
-
-                <Card className="rounded-[28px] p-6 hr-glass">
-                  <div className="text-base font-semibold tracking-tight">
-                    Convites pendentes
-                  </div>
-                  <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                    Convites registrados para este tenant.
-                  </div>
-
-                  <div className="mt-5 overflow-hidden rounded-2xl ring-1 ring-slate-200 dark:ring-white/10">
-                    <Table>
-                      <TableHeader>
-                        <TableRow className="bg-[#F8FAFC]/80 dark:bg-white/5">
-                          <TableHead className="text-slate-600 dark:text-slate-300">
-                            E-mail
-                          </TableHead>
-                          <TableHead className="text-slate-600 dark:text-slate-300">
-                            Role
-                          </TableHead>
-                          <TableHead className="text-slate-600 dark:text-slate-300">
-                            Criado
-                          </TableHead>
-                          <TableHead className="text-right text-slate-600 dark:text-slate-300">
-                            Ações
-                          </TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {(invitesQuery.data ?? []).length === 0 ? (
-                          <TableRow>
-                            <TableCell colSpan={4} className="py-10 text-center">
-                              <div className="text-sm text-slate-600 dark:text-slate-300">
-                                Sem convites pendentes.
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ) : (
-                          (invitesQuery.data ?? []).map((i) => (
-                            <TableRow
-                              key={i.id}
-                              className="transition hover:bg-[#F8FAFC]/80 dark:hover:bg-white/5"
-                            >
-                              <TableCell className="font-medium">
-                                {i.email}
-                              </TableCell>
-                              <TableCell>
-                                <Badge className="rounded-full bg-white/60 text-slate-700 ring-1 ring-slate-200 dark:bg-white/10 dark:text-slate-200 dark:ring-white/10">
-                                  {i.role}
-                                </Badge>
-                              </TableCell>
-                              <TableCell className="text-slate-600 dark:text-slate-300">
-                                {new Date(i.created_at).toLocaleDateString()}
+                                {accepted ? (
+                                  <Badge className="rounded-full bg-emerald-500/15 text-emerald-700 ring-1 ring-emerald-500/20 dark:text-emerald-200">
+                                    Aceito
+                                  </Badge>
+                                ) : (
+                                  <Badge className="rounded-full bg-amber-500/15 text-amber-700 ring-1 ring-amber-500/20 dark:text-amber-200">
+                                    Pendente
+                                  </Badge>
+                                )}
                               </TableCell>
                               <TableCell className="text-right">
                                 <Button
                                   type="button"
                                   variant="secondary"
-                                  className="h-10 rounded-xl hr-btn-secondary"
-                                  onClick={() => deleteInvite(i.id)}
+                                  className={cn(
+                                    "h-9 rounded-xl hr-btn-secondary",
+                                    accepted && "opacity-50"
+                                  )}
+                                  disabled={accepted}
+                                  onClick={() => void deleteInvite(inv.id)}
                                 >
                                   <Trash2 className="mr-2 h-4 w-4" />
-                                  Revogar
+                                  Remover
                                 </Button>
                               </TableCell>
                             </TableRow>
-                          ))
-                        )}
-                      </TableBody>
-                    </Table>
-                  </div>
-                </Card>
-              </div>
-            )}
-          </TabsContent>
+                          );
+                        })
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </Card>
+            </div>
+          )}
+        </TabsContent>
 
-          {/* Identidade */}
-          <TabsContent value="brand" className="m-0">
-            {!isAdmin ? (
-              <AccessDeniedCard
-                title="Acesso negado"
-                subtitle="A identidade da agência é gerenciada apenas por Admin."
-              />
-            ) : (
+        <TabsContent value="brand" className="mt-5">
+          {!isAdmin ? (
+            <AccessDeniedCard
+              title="Marca protegida"
+              subtitle="Somente Admins podem alterar a identidade do tenant."
+            />
+          ) : (
+            <div className="grid gap-5 lg:grid-cols-2">
               <Card className="rounded-[28px] p-6 hr-glass">
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                  <div>
-                    <div className="text-base font-semibold tracking-tight">
-                      Identidade da agência
-                    </div>
-                    <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                      Atualize nome, slogan e logomarca (reflete no header).
-                    </div>
-                  </div>
+                <SectionTitle
+                  icon={Building2}
+                  title="Identidade do tenant"
+                  subtitle="Defina o nome e slogan que aparecem no painel e nas vagas públicas."
+                />
 
-                  <div className="flex items-center gap-2">
-                    <input
-                      ref={logoInputRef}
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={async (e) => {
-                        const f = e.target.files?.[0];
-                        if (!f) return;
-                        try {
-                          if (f.size > 1024 * 1024) {
-                            throw new Error("Use uma imagem de até 1MB.");
-                          }
-                          const url = await fileToDataUrl(f);
-                          setLogoDataUrl(url);
-                        } catch (err: any) {
-                          toast({
-                            title: "Upload falhou",
-                            description: err?.message ?? String(err),
-                            variant: "destructive",
-                          });
-                        }
-                      }}
-                    />
-
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      className="h-10 rounded-xl hr-btn-secondary"
-                      onClick={() => logoInputRef.current?.click()}
-                    >
-                      <Upload className="mr-2 h-4 w-4" />
-                      Upload logo
-                    </Button>
-                    {logoDataUrl ? (
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        className="h-10 rounded-xl hr-btn-secondary"
-                        onClick={() => setLogoDataUrl(null)}
-                      >
-                        Remover
-                      </Button>
-                    ) : null}
-                  </div>
-                </div>
-
-                <div className="mt-5 flex items-center gap-3 rounded-3xl bg-white/60 p-4 ring-1 ring-slate-200 dark:bg-white/5 dark:ring-white/10">
-                  <div className="h-12 w-12 overflow-hidden rounded-2xl bg-white/70 ring-1 ring-slate-200 dark:bg-white/10 dark:ring-white/10">
-                    {logoDataUrl ? (
-                      <img
-                        src={logoDataUrl}
-                        alt="Logo da agência"
-                        className="h-full w-full object-contain"
-                      />
-                    ) : (
-                      <div className="flex h-full w-full items-center justify-center text-xs font-semibold text-slate-600 dark:text-slate-300">
-                        Logo
-                      </div>
-                    )}
-                  </div>
-                  <div className="min-w-0">
-                    <div className="text-sm font-semibold text-slate-900 dark:text-white">
-                      Preview
-                    </div>
-                    <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                      {agencyName || tenantQuery.data?.name || "Agência"}
-                      {slogan ? (
-                        <span className="text-slate-500 dark:text-slate-400">
-                          {" "}• {slogan}
-                        </span>
-                      ) : null}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-5 grid gap-4 sm:grid-cols-2">
-                  <div>
-                    <Label className="text-xs font-semibold text-slate-600 dark:text-slate-300">
-                      Nome da agência
-                    </Label>
+                <div className="mt-6 grid gap-4">
+                  <div className="space-y-2">
+                    <Label>Nome</Label>
                     <Input
-                      value={agencyName}
-                      onChange={(e) => setAgencyName(e.target.value)}
-                      className="mt-2 h-11 rounded-2xl bg-white/70 ring-1 ring-slate-200 backdrop-blur-md dark:bg-white/5 dark:ring-white/10"
-                      placeholder="Ex.: Neon Talent Co."
+                      value={tenantName}
+                      onChange={(e) => setTenantName(e.target.value)}
+                      className="h-11 rounded-2xl"
+                      placeholder="Ex.: Virtus RH"
                     />
                   </div>
 
-                  <div>
-                    <Label className="text-xs font-semibold text-slate-600 dark:text-slate-300">
-                      Slogan
-                    </Label>
+                  <div className="space-y-2">
+                    <Label>Slogan</Label>
                     <Input
-                      value={slogan}
-                      onChange={(e) => setSlogan(e.target.value)}
-                      className="mt-2 h-11 rounded-2xl bg-white/70 ring-1 ring-slate-200 backdrop-blur-md dark:bg-white/5 dark:ring-white/10"
-                      placeholder="Ex.: Contratações com precisão."
+                      value={tenantSlogan}
+                      onChange={(e) => setTenantSlogan(e.target.value)}
+                      className="h-11 rounded-2xl"
+                      placeholder="Ex.: Recrutamento de precisão"
                     />
                   </div>
-                </div>
 
-                <div className="mt-6 flex items-center justify-between gap-3">
-                  <div className="text-xs text-slate-500 dark:text-slate-400">
-                    Alterações são salvas no tenant atual (RLS).
-                  </div>
                   <Button
                     type="button"
-                    className="h-11 rounded-xl bg-[hsl(var(--electric-indigo))] text-white shadow-[0_18px_60px_-34px_rgba(111,0,255,0.95)]"
-                    onClick={saveBrand}
+                    className="h-11 rounded-2xl hr-btn-primary"
+                    onClick={() => void saveTenant()}
+                    disabled={tenantQuery.isLoading}
                   >
-                    Salvar identidade
+                    Salvar marca
                   </Button>
                 </div>
               </Card>
-            )}
-          </TabsContent>
-        </Tabs>
-      </motion.div>
+
+              <Card className="rounded-[28px] p-6 hr-glass">
+                <SectionTitle
+                  icon={Upload}
+                  title="Logo"
+                  subtitle="Suba uma imagem para aparecer no topo do painel."
+                />
+
+                <div className="mt-6 flex items-center gap-4">
+                  <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-2xl bg-slate-100 ring-1 ring-slate-200 dark:bg-white/5 dark:ring-white/10">
+                    {tenantLogo ? (
+                      <img
+                        src={tenantLogo}
+                        alt="Logo"
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <Building2 className="h-6 w-6 text-slate-400" />
+                    )}
+                  </div>
+
+                  <input
+                    ref={tenantLogoInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => void onPickTenantLogo(e.target.files?.[0] ?? null)}
+                  />
+
+                  <div className="flex-1">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      className="h-11 w-full rounded-2xl hr-btn-secondary"
+                      onClick={() => tenantLogoInputRef.current?.click()}
+                    >
+                      Selecionar imagem
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      className="mt-2 h-10 w-full rounded-2xl hr-btn-secondary"
+                      onClick={() => setTenantLogo(null)}
+                    >
+                      Remover
+                    </Button>
+                  </div>
+                </div>
+
+                <p className="mt-4 text-xs text-slate-500 dark:text-slate-400">
+                  Recomendações: PNG quadrado, fundo transparente, até 200KB.
+                </p>
+              </Card>
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
+    </motion.div>
+  );
+}
+
+export default function Settings() {
+  const { session, isLoading } = useSession();
+
+  if (isLoading) return null;
+  if (!session) return <Navigate to="/login" replace />;
+
+  return (
+    <Layout>
+      <SettingsContent />
     </Layout>
   );
 }
