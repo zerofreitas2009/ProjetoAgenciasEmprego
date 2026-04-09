@@ -7,6 +7,8 @@ import { useSession } from "@/auth/SessionProvider";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { hr_Logo as HrLogo } from "@/components/hr_Logo";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { PremiumProvider, usePremium } from "@/components/premium/PremiumContext";
 import {
   Sheet,
   SheetContent,
@@ -24,7 +26,10 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Settings as SettingsIcon,
+  Crown,
 } from "lucide-react";
+
+const MASTER_EMAIL = "zerofreitas2009@gmail.com";
 
 const NAV = [
   {
@@ -47,6 +52,12 @@ const NAV = [
     label: "Financeiro",
     icon: Wallet,
     adminOnly: true,
+  },
+  {
+    to: "/master",
+    label: "Dashboard Master",
+    icon: Crown,
+    masterOnly: true,
   },
 ];
 
@@ -96,9 +107,10 @@ function NavLinks({
   );
 }
 
-export function Layout({ children }: PropsWithChildren) {
+function LayoutShell({ children }: PropsWithChildren) {
   const { session } = useSession();
   const location = useLocation();
+  const { openPremium } = usePremium();
 
   const roleQuery = useQuery({
     queryKey: ["hr_role"],
@@ -121,11 +133,16 @@ export function Layout({ children }: PropsWithChildren) {
 
       const { data, error } = await supabase
         .from("hr_tenants")
-        .select("id, name, logo_data_url")
+        .select("id, name, logo_data_url, plan_status")
         .eq("id", tenantId as string)
         .single();
       if (error) throw error;
-      return data as { id: string; name: string; logo_data_url: string | null };
+      return data as {
+        id: string;
+        name: string;
+        logo_data_url: string | null;
+        plan_status: string;
+      };
     },
   });
 
@@ -141,12 +158,16 @@ export function Layout({ children }: PropsWithChildren) {
     localStorage.setItem("hr_sidebar_collapsed", collapsed ? "1" : "0");
   }, [collapsed]);
 
+  const email = session?.user.email ?? "";
+  const isMaster = email.toLowerCase() === MASTER_EMAIL;
+
   const navItems = useMemo(() => {
     const role = roleQuery.data;
-    return NAV.filter((x) => !x.adminOnly || role === "ADMIN");
-  }, [roleQuery.data]);
-
-  const email = session?.user.email ?? "";
+    return NAV.filter((x) => {
+      if ((x as any).masterOnly) return isMaster;
+      return !(x as any).adminOnly || role === "ADMIN";
+    });
+  }, [isMaster, roleQuery.data]);
 
   const pageLabel =
     location.pathname === "/dashboard"
@@ -157,10 +178,14 @@ export function Layout({ children }: PropsWithChildren) {
           ? "Configurações"
           : location.pathname.startsWith("/finance")
             ? "Financeiro"
-            : "Painel";
+            : location.pathname.startsWith("/master")
+              ? "Dashboard Master"
+              : "Painel";
 
   const brandName = tenantBrandQuery.data?.name ?? null;
   const logoSrc = tenantBrandQuery.data?.logo_data_url ?? null;
+  const planStatus = (tenantBrandQuery.data?.plan_status ?? "trial").toLowerCase();
+  const isTrial = planStatus === "trial";
 
   return (
     <div className="min-h-screen bg-white text-slate-900 dark:bg-[#020617] dark:text-slate-100">
@@ -181,7 +206,12 @@ export function Layout({ children }: PropsWithChildren) {
                 collapsed && "justify-center"
               )}
             >
-              <HrLogo size="sm" withText={!collapsed} brandName={brandName} logoSrc={logoSrc} />
+              <HrLogo
+                size="sm"
+                withText={!collapsed}
+                brandName={brandName}
+                logoSrc={logoSrc}
+              />
             </Link>
 
             <button
@@ -204,10 +234,31 @@ export function Layout({ children }: PropsWithChildren) {
           {collapsed ? null : (
             <div className="mt-auto">
               <div className="mt-6 rounded-2xl bg-white/60 p-3 text-xs text-slate-600 ring-1 ring-slate-200 dark:bg-white/5 dark:text-slate-300 dark:ring-white/10">
-                <div className="flex items-center gap-2">
-                  <UserRound className="h-4 w-4" />
-                  <span className="truncate">{email || "Sessão"}</span>
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex min-w-0 items-center gap-2">
+                    <UserRound className="h-4 w-4" />
+                    <span className="truncate">{email || "Sessão"}</span>
+                  </div>
+                  {isTrial ? (
+                    <Badge className="rounded-full bg-amber-500/15 text-amber-700 ring-1 ring-amber-500/20 dark:text-amber-200">
+                      Trial
+                    </Badge>
+                  ) : (
+                    <Badge className="rounded-full bg-emerald-500/15 text-emerald-700 ring-1 ring-emerald-500/20 dark:text-emerald-200">
+                      Active
+                    </Badge>
+                  )}
                 </div>
+
+                {isTrial ? (
+                  <button
+                    type="button"
+                    onClick={() => openPremium("upgrade")}
+                    className="mt-3 w-full rounded-xl bg-[hsl(var(--electric-indigo))] px-3 py-2 text-xs font-semibold text-white shadow-[0_16px_40px_-28px_rgba(111,0,255,0.9)] transition hover:brightness-110"
+                  >
+                    Upgrade Vitalício
+                  </button>
+                ) : null}
               </div>
             </div>
           )}
@@ -244,15 +295,36 @@ export function Layout({ children }: PropsWithChildren) {
                   className="inline-flex items-center rounded-2xl px-2.5 py-2 transition hover:bg-white/60 dark:hover:bg-white/10"
                   title="Home"
                 >
-                  <HrLogo size="sm" withText={false} brandName={brandName} logoSrc={logoSrc} />
+                  <HrLogo
+                    size="sm"
+                    withText={false}
+                    brandName={brandName}
+                    logoSrc={logoSrc}
+                  />
                 </Link>
 
                 <div className="hidden rounded-2xl bg-white/60 px-3 py-2 text-sm font-semibold text-slate-900 ring-1 ring-slate-200 dark:bg-white/5 dark:text-white dark:ring-white/10 sm:block">
                   {pageLabel}
                 </div>
+
+                {isTrial ? (
+                  <Badge className="hidden rounded-full bg-amber-500/15 text-amber-700 ring-1 ring-amber-500/20 dark:text-amber-200 sm:inline-flex">
+                    Trial
+                  </Badge>
+                ) : null}
               </div>
 
               <div className="flex items-center gap-2">
+                {isTrial ? (
+                  <Button
+                    variant="secondary"
+                    className="h-10 rounded-xl hr-btn-secondary"
+                    onClick={() => openPremium("upgrade")}
+                  >
+                    Upgrade
+                  </Button>
+                ) : null}
+
                 <ThemeToggle />
                 <Button
                   variant="secondary"
@@ -270,5 +342,35 @@ export function Layout({ children }: PropsWithChildren) {
         </div>
       </div>
     </div>
+  );
+}
+
+export function Layout({ children }: PropsWithChildren) {
+  // Layout uses tenant branding for the premium CTA text.
+  const { session } = useSession();
+
+  const agencyNameQuery = useQuery({
+    queryKey: ["hr_agency_name_for_premium"],
+    enabled: !!session,
+    queryFn: async () => {
+      const { data: tenantId, error: tenantErr } = await supabase.rpc(
+        "get_hr_tenant"
+      );
+      if (tenantErr) throw tenantErr;
+
+      const { data, error } = await supabase
+        .from("hr_tenants")
+        .select("name")
+        .eq("id", tenantId as string)
+        .single();
+      if (error) throw error;
+      return (data as any).name as string;
+    },
+  });
+
+  return (
+    <PremiumProvider agencyName={agencyNameQuery.data ?? null}>
+      <LayoutShell>{children}</LayoutShell>
+    </PremiumProvider>
   );
 }

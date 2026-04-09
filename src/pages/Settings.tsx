@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "@/hooks/use-toast";
+import { usePremium } from "@/components/premium/PremiumContext";
 import {
   Tabs,
   TabsContent,
@@ -104,8 +105,19 @@ function fileToDataUrl(file: File): Promise<string> {
   });
 }
 
+function isTrialLimitError(err: any) {
+  const msg = String(err?.message ?? "");
+  const code = String(err?.code ?? "");
+  return (
+    code === "42501" ||
+    /row-level security/i.test(msg) ||
+    /permission denied/i.test(msg)
+  );
+}
+
 export default function Settings() {
   const { session, isLoading } = useSession();
+  const { openPremium } = usePremium();
   const [params, setParams] = useSearchParams();
 
   const tab = (params.get("tab") ?? "profile") as
@@ -399,6 +411,17 @@ export default function Settings() {
       setInviteRole("RECRUITER");
       invitesQuery.refetch();
     } catch (e: any) {
+      if (isTrialLimitError(e)) {
+        openPremium("limit");
+        toast({
+          title: "Limite do trial atingido",
+          description:
+            "Para adicionar mais membros na equipe, ative o acesso vitalício.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       toast({
         title: "Não foi possível convidar",
         description: e?.message ?? String(e),

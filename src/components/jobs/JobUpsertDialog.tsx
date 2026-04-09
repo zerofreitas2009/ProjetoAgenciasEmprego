@@ -27,6 +27,8 @@ import {
   type DnaSkill,
   type DnaSkillLevel,
 } from "@/components/jobs/JobDnaRadarPreview";
+import { usePremium } from "@/components/premium/PremiumContext";
+import { toast } from "@/hooks/use-toast";
 import {
   BriefcaseBusiness,
   Pencil,
@@ -55,6 +57,17 @@ export type AdminJob = {
   confidential: boolean;
   company?: { name: string } | null;
 };
+
+function isTrialLimitError(err: any) {
+  const msg = String(err?.message ?? "");
+  const code = String(err?.code ?? "");
+  return (
+    code === "42501" ||
+    /row-level security/i.test(msg) ||
+    /permission denied/i.test(msg) ||
+    /plan_locked/i.test(msg)
+  );
+}
 
 function skillsFromRequirements(raw: unknown): string[] {
   if (Array.isArray(raw)) return raw.filter((x): x is string => typeof x === "string");
@@ -126,6 +139,7 @@ export function JobUpsertDialog({
   onSaved?: () => void;
 }) {
   const queryClient = useQueryClient();
+  const { openPremium } = usePremium();
   const isEdit = !!job;
 
   const [open, setOpen] = useState(false);
@@ -253,6 +267,31 @@ export function JobUpsertDialog({
       queryClient.invalidateQueries({ queryKey: ["hr_jobs_admin"] });
       onSaved?.();
       setOpen(false);
+
+      toast({
+        title: isEdit ? "Vaga atualizada" : "Vaga criada",
+        description:
+          (status || "").toUpperCase() === "OPEN"
+            ? "Sua vaga já está ativa."
+            : "Salvo como rascunho.",
+      });
+    } catch (e: any) {
+      if (isTrialLimitError(e)) {
+        openPremium("limit");
+        toast({
+          title: "Limite do trial atingido",
+          description:
+            "Para liberar mais vagas ativas, ative o acesso vitalício.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      toast({
+        title: "Não foi possível salvar a vaga",
+        description: e?.message ?? String(e),
+        variant: "destructive",
+      });
     } finally {
       setSaving(false);
     }
