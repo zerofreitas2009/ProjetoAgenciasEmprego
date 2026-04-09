@@ -3,7 +3,6 @@ import { ArrowRight, ShieldCheck, Sparkles, Workflow } from "lucide-react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { hr_Logo as HrLogo } from "@/components/hr_Logo";
 
@@ -55,18 +54,6 @@ export default function Index() {
             transition={{ delay: 0.05, type: "spring", stiffness: 260, damping: 24 }}
             className="space-y-6"
           >
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge className="rounded-full bg-[hsl(var(--primary))]/10 text-[hsl(var(--primary))] ring-1 ring-[hsl(var(--primary))]/15 dark:bg-[hsl(var(--primary))]/15 dark:text-white">
-                Para agências de RH
-              </Badge>
-              <Badge className="rounded-full bg-[#10B981]/10 text-[#10B981] ring-1 ring-[#10B981]/15 dark:bg-[#10B981]/15">
-                Gargalos em tempo real
-              </Badge>
-              <Badge className="rounded-full bg-[#FB923C]/10 text-[#FB923C] ring-1 ring-[#FB923C]/15 dark:bg-[#FB923C]/15">
-                Portal do cliente
-              </Badge>
-            </div>
-
             <h1 className="text-balance text-4xl font-semibold tracking-tight sm:text-5xl">
               Recrutamento Enterprise com Inteligência e Alta Performance.
             </h1>
@@ -155,15 +142,7 @@ export default function Index() {
           >
             <Card className="relative z-10 rounded-[28px] p-6 hr-glass">
               <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-sm font-semibold">Visão geral</div>
-                  <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                    Indicadores • Pipeline • Portal do Cliente • Financeiro
-                  </div>
-                </div>
-                <Badge className="rounded-full bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))] shadow-lg shadow-violet-500/20">
-                  Tudo em um só lugar
-                </Badge>
+                <div className="text-sm font-semibold">Visão geral</div>
               </div>
 
               <div className="mt-5 grid gap-3">
