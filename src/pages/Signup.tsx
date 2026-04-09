@@ -1,7 +1,14 @@
-import { useMemo, useState } from "react";
+import { type FormEvent, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, ArrowRight, Building2, Mail, UserRound, KeyRound } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  Building2,
+  Mail,
+  UserRound,
+  KeyRound,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -34,7 +41,7 @@ export default function Signup() {
     );
   }, [email, fullName, password.length, tenantName]);
 
-  async function onSubmit(e: React.FormEvent) {
+  async function onSubmit(e: FormEvent) {
     e.preventDefault();
     if (!isValid || isSubmitting) return;
 
@@ -110,7 +117,8 @@ export default function Signup() {
             Crie sua agência em segundos
           </h1>
           <p className="mx-auto mt-2 max-w-md text-pretty text-sm leading-relaxed text-slate-300">
-            Cadastro self-service com isolamento por tenant. Você entra e o sistema já nasce com a sua marca.
+            Cadastro self-service com isolamento por tenant. Você entra e o sistema
+            já nasce com a sua marca.
           </p>
         </motion.div>
 
@@ -139,7 +147,9 @@ export default function Signup() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-slate-200">Nome da agência / consultoria</Label>
+                  <Label className="text-slate-200">
+                    Nome da agência / consultoria
+                  </Label>
                   <div className="relative">
                     <Building2 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-300" />
                     <Input
@@ -210,7 +220,8 @@ export default function Signup() {
               ) : null}
 
               <p className="text-xs leading-relaxed text-slate-400">
-                Ao continuar, você se torna o Admin (Owner) do tenant e poderá convidar a sua equipe depois.
+                Ao continuar, você se torna o Admin (Owner) do tenant e poderá
+                convidar a sua equipe depois.
               </p>
             </form>
           </Card>

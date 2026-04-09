@@ -204,6 +204,11 @@ export default function Dashboard() {
     },
   });
 
+  const candidateRows = useMemo(
+    () => candidatesQuery.data ?? [],
+    [candidatesQuery.data]
+  );
+
   const selectedJob = useMemo(() => {
     const jobs = jobsQuery.data ?? [];
     return jobs.find((j) => j.id === selectedJobId) ?? null;
