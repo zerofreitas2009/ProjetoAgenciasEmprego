@@ -18,13 +18,16 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { hr_NewJobForm as HrNewJobForm } from "@/components/ats/hr_NewJobForm";
 import { hr_JobCard as HrJobCard, type HrJob } from "@/components/ats/hr_JobCard";
 import {
   hr_PipelineView as HrPipelineView,
   type HrApplicationRow,
 } from "@/components/ats/hr_PipelineView";
-import { Copy, Link as LinkIcon } from "lucide-react";
+import { Copy, Link as LinkIcon, Sparkles } from "lucide-react";
+import {
+  JobUpsertDialog,
+  type AdminCompany,
+} from "@/components/jobs/JobUpsertDialog";
 
 type Candidate = {
   id: string;
@@ -370,10 +373,26 @@ export default function Dashboard() {
           </TabsList>
 
           <TabsContent value="jobs" className="space-y-4">
-            <HrNewJobForm
-              companies={companiesQuery.data ?? []}
-              onCreated={() => jobsQuery.refetch()}
-            />
+            <Card className="rounded-[28px] p-5 hr-glass">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <div className="inline-flex items-center gap-2 rounded-full bg-[hsl(var(--primary))]/10 px-3 py-1 text-xs font-semibold text-[hsl(var(--primary))] ring-1 ring-[hsl(var(--primary))]/15 dark:bg-[hsl(var(--primary))]/15 dark:text-white">
+                    <Sparkles className="h-3.5 w-3.5" />
+                    Criar vaga com DNA técnico
+                  </div>
+                  <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+                    Use o formulário em 3 passos (Rich Text + Radar) para alimentar o
+                    Matchmaker.
+                  </p>
+                </div>
+                <JobUpsertDialog
+                  companies={(companiesQuery.data ?? []) as unknown as AdminCompany[]}
+                  triggerVariant="default"
+                  triggerLabel="Nova Vaga"
+                  onSaved={() => jobsQuery.refetch()}
+                />
+              </div>
+            </Card>
 
             <div className="grid gap-4 lg:grid-cols-[1.1fr_1.9fr]">
               <Card className="rounded-[28px] p-5 hr-glass">

@@ -33,6 +33,13 @@ function statusMeta(status: string) {
         "bg-emerald-100 text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-200",
     };
   }
+  if (s === "DRAFT") {
+    return {
+      label: "Rascunho",
+      className:
+        "bg-slate-200 text-slate-700 dark:bg-white/10 dark:text-slate-200",
+    };
+  }
   if (s === "PAUSED") {
     return {
       label: "Pausada",

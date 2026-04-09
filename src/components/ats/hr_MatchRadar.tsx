@@ -1,5 +1,11 @@
 import { useMemo } from "react";
-import { Radar, RadarChart, PolarGrid, PolarAngleAxis, ResponsiveContainer } from "recharts";
+import {
+  Radar,
+  RadarChart,
+  PolarGrid,
+  PolarAngleAxis,
+  ResponsiveContainer,
+} from "recharts";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
@@ -15,6 +21,29 @@ function parseRequirements(raw: unknown): string[] {
       .filter(Boolean);
   }
   return [];
+}
+
+type DnaLevel = "BASIC" | "INTERMEDIATE" | "ADVANCED";
+
+function levelToTarget(level: DnaLevel): number {
+  if (level === "BASIC") return 40;
+  if (level === "INTERMEDIATE") return 70;
+  return 100;
+}
+
+function parseDnaSkills(raw: unknown): { skill: string; target: number }[] {
+  if (!Array.isArray(raw)) return [];
+  const list: { skill: string; target: number }[] = [];
+  for (const item of raw) {
+    if (!item || typeof item !== "object") continue;
+    const obj = item as any;
+    const name = typeof obj.name === "string" ? obj.name.trim() : "";
+    const level = String(obj.level ?? "").toUpperCase() as DnaLevel;
+    if (!name) continue;
+    if (level !== "BASIC" && level !== "INTERMEDIATE" && level !== "ADVANCED") continue;
+    list.push({ skill: name, target: levelToTarget(level) });
+  }
+  return list.slice(0, 5);
 }
 
 function candidateSkillLevel(skills: unknown, targetSkill: string): number {
@@ -51,11 +80,16 @@ export function hr_MatchRadar({
     queryFn: async () => {
       const { data, error } = await supabase
         .from("hr_jobs")
-        .select("id, title, requirements")
+        .select("id, title, requirements, dna_skills")
         .eq("id", jobId)
         .single();
       if (error) throw error;
-      return data as { id: string; title: string; requirements: unknown };
+      return data as {
+        id: string;
+        title: string;
+        requirements: unknown;
+        dna_skills: unknown;
+      };
     },
   });
 
@@ -73,6 +107,16 @@ export function hr_MatchRadar({
   });
 
   const chartData = useMemo(() => {
+    const dna = parseDnaSkills(jobQuery.data?.dna_skills);
+    if (dna.length) {
+      const skills = candidateQuery.data?.skills;
+      return dna.map((d) => ({
+        skill: d.skill,
+        target: d.target,
+        candidate: candidateSkillLevel(skills, d.skill),
+      }));
+    }
+
     const req = parseRequirements(jobQuery.data?.requirements);
     const top = req.slice(0, 5);
     const skills = candidateQuery.data?.skills;
@@ -82,7 +126,7 @@ export function hr_MatchRadar({
       target: 100,
       candidate: candidateSkillLevel(skills, skill),
     }));
-  }, [jobQuery.data?.requirements, candidateQuery.data?.skills]);
+  }, [jobQuery.data?.requirements, jobQuery.data?.dna_skills, candidateQuery.data?.skills]);
 
   const loading = jobQuery.isFetching || candidateQuery.isFetching;
 
@@ -100,8 +144,7 @@ export function hr_MatchRadar({
             Match • Raio-X
           </div>
           <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-            Comparativo rápido entre as principais competências da vaga e o perfil
-            do candidato.
+            Comparativo rápido entre o DNA técnico da vaga e o perfil do candidato.
           </p>
         </div>
         <div className="rounded-full bg-white/60 px-3 py-1 text-xs font-semibold text-slate-700 ring-1 ring-slate-200 dark:bg-white/10 dark:text-slate-200 dark:ring-white/10">
@@ -120,60 +163,33 @@ export function hr_MatchRadar({
           </div>
         ) : (
           <ResponsiveContainer width="100%" height="100%">
-            <RadarChart data={chartData} outerRadius={88}>
-              <PolarGrid
-                stroke="#94A3B8"
-                strokeOpacity={0.25}
-                radialLines={false}
-              />
+            <RadarChart data={chartData} outerRadius="72%">
+              <PolarGrid stroke="rgba(148,163,184,0.35)" />
               <PolarAngleAxis
                 dataKey="skill"
-                tick={{ fill: "#64748B", fontSize: 11, fontWeight: 600 }}
+                tick={{ fontSize: 11, fill: "rgba(148,163,184,0.95)" }}
               />
-
               <Radar
-                name="Meta"
+                name="Ideal"
                 dataKey="target"
-                stroke="#0EA5E9"
-                fill="#0EA5E9"
-                fillOpacity={0.08}
-                strokeOpacity={0.7}
+                stroke="rgb(111,0,255)"
+                fill="rgba(111,0,255,0.12)"
+                strokeWidth={2}
               />
               <Radar
                 name="Candidato"
                 dataKey="candidate"
-                stroke="#7C3AED"
-                fill="#7C3AED"
-                fillOpacity={0.14}
-                strokeOpacity={0.95}
+                stroke="rgba(16,185,129,0.95)"
+                fill="rgba(16,185,129,0.10)"
+                strokeWidth={2}
               />
             </RadarChart>
           </ResponsiveContainer>
         )}
       </div>
 
-      <div className="mt-4 grid gap-2">
-        {loading ? (
-          <div className="space-y-2">
-            <Skeleton className="h-9 w-full rounded-2xl" />
-            <Skeleton className="h-9 w-full rounded-2xl" />
-            <Skeleton className="h-9 w-full rounded-2xl" />
-          </div>
-        ) : (
-          chartData.map((row) => (
-            <div
-              key={row.skill}
-              className="flex items-center justify-between rounded-2xl bg-white/60 px-3 py-2 text-sm ring-1 ring-slate-200 dark:bg-white/5 dark:ring-white/10"
-            >
-              <span className="truncate text-slate-700 dark:text-slate-200">
-                {row.skill}
-              </span>
-              <span className="ml-3 font-semibold text-slate-900 dark:text-white">
-                {Math.round(row.candidate)}%
-              </span>
-            </div>
-          ))
-        )}
+      <div className="mt-4 text-xs text-slate-500 dark:text-slate-400">
+        Metas do DNA: Básico≈40 • Intermediário≈70 • Avançado≈100
       </div>
     </Card>
   );

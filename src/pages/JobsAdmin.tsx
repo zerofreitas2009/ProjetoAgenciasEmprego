@@ -46,6 +46,13 @@ function statusMeta(status: string) {
         "bg-emerald-100 text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-200",
     };
   }
+  if (s === "DRAFT") {
+    return {
+      label: "Rascunho",
+      className:
+        "bg-slate-200 text-slate-700 dark:bg-white/10 dark:text-slate-200",
+    };
+  }
   if (s === "PAUSED") {
     return {
       label: "Pausada",
@@ -86,7 +93,7 @@ export default function JobsAdmin() {
       const { data, error } = await supabase
         .from("hr_jobs")
         .select(
-          "id, company_id, title, status, work_model, seniority_level, created_at, company:hr_companies!hr_jobs_company_id_fkey(name)"
+          "id, company_id, title, description, salary_range, requirements, dna_skills, status, work_model, seniority_level, application_deadline, confidential, created_at, company:hr_companies!hr_jobs_company_id_fkey(name)"
         )
         .order("created_at", { ascending: false })
         .limit(200);
@@ -119,7 +126,8 @@ export default function JobsAdmin() {
     const list = jobsQuery.data ?? [];
 
     return list.filter((j) => {
-      if (status !== "ALL" && (j.status || "").toUpperCase() !== status) return false;
+      const st = (j.status || "").toUpperCase();
+      if (status !== "ALL" && st !== status) return false;
       if (!query) return true;
       const company = j.company?.name ?? "";
       return (
@@ -131,7 +139,10 @@ export default function JobsAdmin() {
   async function togglePause(job: AdminJob) {
     const current = (job.status || "").toUpperCase();
     const next = current === "PAUSED" ? "OPEN" : "PAUSED";
-    const { error } = await supabase.from("hr_jobs").update({ status: next }).eq("id", job.id);
+    const { error } = await supabase
+      .from("hr_jobs")
+      .update({ status: next })
+      .eq("id", job.id);
     if (!error) jobsQuery.refetch();
   }
 
@@ -170,7 +181,7 @@ export default function JobsAdmin() {
             </div>
 
             <div className="flex items-center gap-2">
-              {(["ALL", "OPEN", "PAUSED", "CLOSED"] as const).map((s) => {
+              {(["ALL", "DRAFT", "OPEN", "PAUSED", "CLOSED"] as const).map((s) => {
                 const active = status === s;
                 const label =
                   s === "ALL" ? "Todas" : statusMeta(s === "CLOSED" ? "CLOSED" : s).label;
@@ -196,6 +207,7 @@ export default function JobsAdmin() {
               companies={companiesQuery.data ?? []}
               triggerVariant="default"
               triggerLabel="Nova Vaga"
+              onSaved={() => jobsQuery.refetch()}
             />
           </div>
         </div>
@@ -263,14 +275,17 @@ export default function JobsAdmin() {
                         key={job.id}
                         className="transition hover:bg-[#F8FAFC]/80 dark:hover:bg-white/5"
                       >
-                        <TableCell className="font-medium">
-                          {job.title}
-                        </TableCell>
+                        <TableCell className="font-medium">{job.title}</TableCell>
                         <TableCell className="text-slate-600 dark:text-slate-300">
                           {job.company?.name ?? "—"}
                         </TableCell>
                         <TableCell>
-                          <Badge className={cn("rounded-full px-3 py-1 text-xs font-semibold", meta.className)}>
+                          <Badge
+                            className={cn(
+                              "rounded-full px-3 py-1 text-xs font-semibold",
+                              meta.className
+                            )}
+                          >
                             {meta.label}
                           </Badge>
                         </TableCell>
@@ -291,6 +306,7 @@ export default function JobsAdmin() {
                               variant="secondary"
                               className="h-10 rounded-xl hr-btn-secondary"
                               onClick={() => togglePause(job)}
+                              disabled={(job.status || "").toUpperCase() === "DRAFT"}
                             >
                               {paused ? (
                                 <PlayCircle className="mr-2 h-4 w-4" />

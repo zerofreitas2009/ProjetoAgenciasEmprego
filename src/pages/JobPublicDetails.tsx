@@ -11,6 +11,7 @@ import { Card } from "@/components/ui/card";
 import { ArrowLeft, ArrowRight, Building2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { JobsEmptyState } from "@/components/jobs/JobsEmptyState";
+import { sanitizeRichText } from "@/components/forms/RichTextEditor";
 
 type PublicJobDetails = {
   id: string;
@@ -112,6 +113,11 @@ export default function JobPublicDetails() {
     [jobQuery.data?.requirements]
   );
 
+  const safeDescription = useMemo(
+    () => sanitizeRichText(jobQuery.data?.description ?? ""),
+    [jobQuery.data?.description]
+  );
+
   return (
     <div className="min-h-screen bg-white text-slate-900 dark:bg-[#020617] dark:text-slate-100">
       <div className="mx-auto w-full max-w-4xl px-4 py-10">
@@ -131,7 +137,11 @@ export default function JobPublicDetails() {
 
           <div className="flex items-center gap-2">
             <ThemeToggle />
-            <Button variant="secondary" className="h-10 rounded-xl hr-btn-secondary" asChild>
+            <Button
+              variant="secondary"
+              className="h-10 rounded-xl hr-btn-secondary"
+              asChild
+            >
               <Link to={backTo}>
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Voltar
@@ -150,7 +160,7 @@ export default function JobPublicDetails() {
           ) : !jobQuery.data ? (
             <JobsEmptyState
               title="Vaga não encontrada"
-              subtitle="Essa vaga pode ter sido encerrada ou removida do catálogo."
+              subtitle="Essa vaga pode ter sido encerrada, expirado o prazo ou removida do catálogo."
             />
           ) : (
             <motion.div
@@ -182,10 +192,20 @@ export default function JobPublicDetails() {
                         const l = chipForLevel(jobQuery.data.seniority_level);
                         return (
                           <>
-                            <Badge className={cn("rounded-full px-3 py-1 text-xs font-semibold", w.className)}>
+                            <Badge
+                              className={cn(
+                                "rounded-full px-3 py-1 text-xs font-semibold",
+                                w.className
+                              )}
+                            >
                               {w.label}
                             </Badge>
-                            <Badge className={cn("rounded-full px-3 py-1 text-xs font-semibold", l.className)}>
+                            <Badge
+                              className={cn(
+                                "rounded-full px-3 py-1 text-xs font-semibold",
+                                l.className
+                              )}
+                            >
                               {l.label}
                             </Badge>
                           </>
@@ -214,14 +234,15 @@ export default function JobPublicDetails() {
                   </Button>
                 </div>
 
-                {jobQuery.data.description ? (
+                {safeDescription ? (
                   <div className="mt-6">
                     <div className="text-xs font-semibold text-slate-600 dark:text-slate-300">
                       Sobre a vaga
                     </div>
-                    <div className="prose prose-slate mt-2 max-w-none text-sm dark:prose-invert">
-                      <p className="whitespace-pre-wrap">{jobQuery.data.description}</p>
-                    </div>
+                    <div
+                      className="prose prose-slate mt-2 max-w-none text-sm dark:prose-invert"
+                      dangerouslySetInnerHTML={{ __html: safeDescription }}
+                    />
                   </div>
                 ) : null}
 

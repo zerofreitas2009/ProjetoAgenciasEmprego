@@ -27,6 +27,10 @@ function skillsToArray(raw: unknown): string[] {
   return [];
 }
 
+function stripHtml(html: string) {
+  return html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+}
+
 function chipForWorkModel(model: string) {
   const m = (model || "").toUpperCase();
   if (m === "HYBRID" || m === "HÍBRIDO" || m === "HIBRIDO") {
@@ -82,6 +86,8 @@ export function PublicJobCard({ job }: { job: PublicJobRow }) {
   const skills = skillsToArray(job.requirements);
   const initial = (job.company_name || "").trim().slice(0, 1).toUpperCase() || "C";
 
+  const descText = job.description ? stripHtml(job.description) : "";
+
   return (
     <div
       className={cn(
@@ -124,10 +130,20 @@ export function PublicJobCard({ job }: { job: PublicJobRow }) {
         </div>
 
         <div className="mt-4 flex flex-wrap items-center gap-2">
-          <Badge className={cn("rounded-full px-3 py-1 text-xs font-semibold", work.className)}>
+          <Badge
+            className={cn(
+              "rounded-full px-3 py-1 text-xs font-semibold",
+              work.className
+            )}
+          >
             {work.label}
           </Badge>
-          <Badge className={cn("rounded-full px-3 py-1 text-xs font-semibold", lvl.className)}>
+          <Badge
+            className={cn(
+              "rounded-full px-3 py-1 text-xs font-semibold",
+              lvl.className
+            )}
+          >
             {lvl.label}
           </Badge>
 
@@ -138,9 +154,9 @@ export function PublicJobCard({ job }: { job: PublicJobRow }) {
           ) : null}
         </div>
 
-        {job.description ? (
+        {descText ? (
           <p className="mt-4 line-clamp-2 text-sm text-slate-600 dark:text-slate-300">
-            {job.description}
+            {descText}
           </p>
         ) : null}
 
@@ -184,7 +200,6 @@ export function PublicJobCard({ job }: { job: PublicJobRow }) {
           </Button>
         </div>
       </div>
-
     </div>
   );
 }
