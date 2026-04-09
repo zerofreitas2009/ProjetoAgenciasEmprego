@@ -1,11 +1,12 @@
 import { useEffect, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, ArrowRight } from "lucide-react";
 import { Auth } from "@supabase/auth-ui-react";
 import { ThemeSupa } from "@supabase/auth-ui-shared";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/auth/SessionProvider";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { hr_Logo as HrLogo } from "@/components/hr_Logo";
 import { useTheme } from "next-themes";
 
@@ -53,7 +54,22 @@ export default function Login() {
   const currentTheme = theme === "system" ? resolvedTheme : theme;
 
   useEffect(() => {
-    if (session) navigate("/dashboard", { replace: true });
+    if (!session) return;
+
+    (async () => {
+      const { data, error } = await supabase
+        .from("hr_profiles")
+        .select("onboarding_completed")
+        .eq("id", session.user.id)
+        .maybeSingle();
+
+      if (!error && data && data.onboarding_completed === false) {
+        navigate("/welcome", { replace: true });
+        return;
+      }
+
+      navigate("/dashboard", { replace: true });
+    })();
   }, [navigate, session]);
 
   const authAppearance = useMemo(() => {
@@ -116,9 +132,16 @@ export default function Login() {
             Acesse seu painel
           </h1>
           <p className="mt-2 text-sm leading-relaxed text-slate-600 dark:text-slate-300">
-            Entre com seu e-mail para criar sua conta. Um tenant e um perfil serão
-            gerados automaticamente.
+            Se você ainda não tem conta, crie sua agência pelo cadastro self-service.
           </p>
+
+          <div className="mt-5 flex justify-center">
+            <Button className="h-10 rounded-xl hr-btn-primary" asChild>
+              <Link to="/signup">
+                Criar agência <ArrowRight className="ml-2 h-4 w-4" />
+              </Link>
+            </Button>
+          </div>
         </div>
 
         <Card className="rounded-3xl p-6 hr-glass">
@@ -128,6 +151,8 @@ export default function Login() {
             appearance={authAppearance}
             theme={currentTheme === "dark" ? "dark" : "light"}
             localization={ptBR as any}
+            view="sign_in"
+            showLinks={false}
           />
         </Card>
 

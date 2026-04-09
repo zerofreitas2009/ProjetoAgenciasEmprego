@@ -60,6 +60,20 @@ export default function Dashboard() {
     if (jobIdFromUrl && !selectedJobId) setSelectedJobId(jobIdFromUrl);
   }, [searchParams, selectedJobId]);
 
+  const onboardingQuery = useQuery({
+    queryKey: ["hr_onboarding_completed"],
+    enabled: !!session,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("hr_profiles")
+        .select("onboarding_completed")
+        .eq("id", session!.user.id)
+        .single();
+      if (error) throw error;
+      return (data as any).onboarding_completed as boolean;
+    },
+  });
+
   const tenantIdQuery = useQuery({
     queryKey: ["hr_tenant_id"],
     enabled: !!session,
@@ -262,21 +276,15 @@ export default function Dashboard() {
         p_job_id: selectedJob.id,
       });
       if (error) throw error;
-      const token = data as string;
-      const url = `${window.location.origin}/client/${token}`;
-      setGuestLink(url);
-      await navigator.clipboard.writeText(url);
+      setGuestLink(String(data ?? ""));
     } finally {
       setIsGeneratingLink(false);
     }
   }
 
-  const candidateRows = useMemo(
-    () => candidatesQuery.data ?? [],
-    [candidatesQuery.data]
-  );
-
   if (!isLoading && !session) return <Navigate to="/login" replace />;
+  if (session && onboardingQuery.data === false)
+    return <Navigate to="/welcome" replace />;
 
   return (
     <Layout>

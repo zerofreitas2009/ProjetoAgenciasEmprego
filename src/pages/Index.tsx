@@ -40,8 +40,8 @@ export default function Index() {
               <Link to="/login">Entrar</Link>
             </Button>
             <Button className="h-10 rounded-xl hr-btn-primary" asChild>
-              <Link to="/dashboard">
-                Acessar painel <ArrowRight className="ml-2 h-4 w-4" />
+              <Link to="/signup">
+                Criar agência <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
             </Button>
           </div>
@@ -78,8 +78,8 @@ export default function Index() {
 
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
               <Button className="h-11 rounded-xl hr-btn-primary" asChild>
-                <Link to="/login">
-                  Criar conta / Entrar <ArrowRight className="ml-2 h-4 w-4" />
+                <Link to="/signup">
+                  Criar minha agência <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
               </Button>
               <Button
