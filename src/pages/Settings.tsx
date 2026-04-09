@@ -329,7 +329,8 @@ function SettingsContent() {
 
   async function createInvite() {
     const tenantId = tenantQuery.data?.id;
-    if (!tenantId) return;
+    const tenantName = tenantQuery.data?.name;
+    if (!tenantId || !tenantName) return;
 
     const email = inviteEmail.trim().toLowerCase();
     if (!email.includes("@")) {
@@ -341,19 +342,24 @@ function SettingsContent() {
       return;
     }
 
-    const { error } = await supabase.from("hr_team_invites").insert({
-      tenant_id: tenantId,
-      email,
-      role: inviteRole,
-      invited_by: session?.user.id ?? null,
-    });
+    const { data: created, error } = await supabase
+      .from("hr_team_invites")
+      .insert({
+        tenant_id: tenantId,
+        email,
+        role: inviteRole,
+        invited_by: session?.user.id ?? null,
+      })
+      .select("token")
+      .single();
 
     if (error) {
       if (isTrialLimitError(error)) {
         openPremium("limit");
         toast({
           title: "Limite do Trial",
-          description: "Seu plano atual limita o tamanho da equipe. Faça upgrade para convidar mais pessoas.",
+          description:
+            "Seu plano atual limita o tamanho da equipe. Faça upgrade para convidar mais pessoas.",
           variant: "destructive",
         });
         return;
@@ -367,9 +373,37 @@ function SettingsContent() {
       return;
     }
 
+    // Envio de e-mail (convite) via Edge Function
+    const appUrl = window.location.origin;
+    const { error: mailErr } = await supabase.functions.invoke(
+      "hr-send-team-invite",
+      {
+        body: {
+          to: email,
+          tenantName,
+          role: inviteRole,
+          inviteToken: (created as any)?.token,
+          appUrl,
+        },
+      }
+    );
+
+    if (mailErr) {
+      toast({
+        title: "Convite registrado, mas o e-mail falhou",
+        description:
+          "O convite foi salvo, porém não conseguimos enviar o e-mail agora. Tente novamente em instantes.",
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Convite enviado",
+        description: "O recrutador receberá um e-mail com o link para aceitar o convite.",
+      });
+    }
+
     setInviteEmail("");
     await queryClient.invalidateQueries({ queryKey: ["hr_team_invites"] });
-    toast({ title: "Convite registrado", description: "O convite foi salvo no sistema." });
   }
 
   async function deleteInvite(inviteId: string) {
@@ -578,7 +612,7 @@ function SettingsContent() {
                 <SectionTitle
                   icon={MailPlus}
                   title="Convidar para o time"
-                  subtitle="Registre convites para trazer recrutadores para o seu tenant."
+                  subtitle="Envie um e-mail com link para o recrutador criar a conta e entrar no seu tenant."
                 />
 
                 <div className="mt-6 grid gap-4">
@@ -618,7 +652,8 @@ function SettingsContent() {
                   </Button>
 
                   <div className="rounded-2xl bg-white/60 p-3 text-xs text-slate-600 ring-1 ring-slate-200 dark:bg-white/5 dark:text-slate-300 dark:ring-white/10">
-                    Se o Trial bloquear novos convites, você verá a tela de Upgrade.
+                    Importante: em ambientes novos, o provedor de e-mail (Resend)
+                    precisa estar configurado nos Secrets.
                   </div>
                 </div>
               </Card>

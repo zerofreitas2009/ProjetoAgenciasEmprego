@@ -1,5 +1,5 @@
 import { type FormEvent, useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   ArrowLeft,
@@ -33,6 +33,9 @@ const iconClass =
 
 export default function Signup() {
   const navigate = useNavigate();
+  const [params] = useSearchParams();
+  const inviteToken = (params.get("invite") ?? "").trim();
+  const hasInvite = inviteToken.length > 0;
 
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -46,9 +49,9 @@ export default function Signup() {
       fullName.trim().length >= 3 &&
       email.trim().includes("@") &&
       password.length >= 8 &&
-      tenantName.trim().length >= 2
+      (hasInvite ? true : tenantName.trim().length >= 2)
     );
-  }, [email, fullName, password.length, tenantName]);
+  }, [email, fullName, hasInvite, password.length, tenantName]);
 
   async function resendConfirmation(targetEmail: string) {
     const { error } = await supabase.auth.resend({
@@ -102,8 +105,9 @@ export default function Signup() {
         options: {
           data: {
             full_name: normalizedFullName,
-            tenant_name: normalizedTenantName,
-            role: "ADMIN",
+            ...(hasInvite
+              ? { invite_token: inviteToken }
+              : { tenant_name: normalizedTenantName, role: "ADMIN" }),
           },
         },
       });
@@ -112,10 +116,12 @@ export default function Signup() {
 
       if (data.session) {
         // session imediata (quando confirmação por email está desligada)
-        await bootstrapHrForSignedInUser({
-          tenantName: normalizedTenantName,
-          fullName: normalizedFullName,
-        });
+        if (!hasInvite) {
+          await bootstrapHrForSignedInUser({
+            tenantName: normalizedTenantName,
+            fullName: normalizedFullName,
+          });
+        }
         navigate("/welcome", { replace: true });
         return;
       }
@@ -123,8 +129,9 @@ export default function Signup() {
       setAwaitingConfirmation(true);
       toast({
         title: "Quase lá",
-        description:
-          "Enviamos um link de confirmação para o seu e-mail. Assim que confirmar, você já entra com seu tenant pronto.",
+        description: hasInvite
+          ? "Enviamos um link de confirmação para o seu e-mail. Após confirmar, você já entra no tenant que te convidou."
+          : "Enviamos um link de confirmação para o seu e-mail. Assim que confirmar, você já entra com seu tenant pronto.",
       });
     } catch (e: any) {
       const msg = String(e?.message ?? "").toLowerCase();
@@ -139,10 +146,12 @@ export default function Signup() {
           });
 
         if (!signInErr && signInData.session) {
-          await bootstrapHrForSignedInUser({
-            tenantName: normalizedTenantName,
-            fullName: normalizedFullName,
-          });
+          if (!hasInvite) {
+            await bootstrapHrForSignedInUser({
+              tenantName: normalizedTenantName,
+              fullName: normalizedFullName,
+            });
+          }
           navigate("/welcome", { replace: true });
           return;
         }
@@ -222,11 +231,12 @@ export default function Signup() {
           </div>
 
           <h1 className="mt-7 text-balance text-3xl font-semibold tracking-tight">
-            Crie sua agência em segundos
+            {hasInvite ? "Aceite seu convite" : "Crie sua agência em segundos"}
           </h1>
           <p className="mx-auto mt-2 max-w-md text-pretty text-sm leading-relaxed text-slate-300">
-            Cadastro self-service com isolamento por tenant. Você entra e o sistema
-            já nasce com a sua marca.
+            {hasInvite
+              ? "Complete seu cadastro para entrar no tenant que te convidou."
+              : "Cadastro self-service com isolamento por tenant. Você entra e o sistema já nasce com a sua marca."}
           </p>
         </motion.div>
 
@@ -239,7 +249,7 @@ export default function Signup() {
         >
           <Card className="rounded-[34px] p-6 hr-glass text-slate-900 dark:text-slate-100">
             <form onSubmit={onSubmit} className="space-y-5">
-              <div className="grid gap-4 sm:grid-cols-2">
+              <div className={hasInvite ? "space-y-5" : "grid gap-4 sm:grid-cols-2"}>
                 <div className="space-y-2">
                   <Label className={labelClass}>Nome completo</Label>
                   <div className="relative">
@@ -254,25 +264,27 @@ export default function Signup() {
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label className={labelClass}>
-                    Nome da agência / consultoria
-                  </Label>
-                  <div className="relative">
-                    <Building2 className={iconClass} />
-                    <Input
-                      value={tenantName}
-                      onChange={(e) => setTenantName(e.target.value)}
-                      placeholder="Ex.: Deep Ocean Talent"
-                      className={inputClass}
-                      autoComplete="organization"
-                    />
+                {hasInvite ? null : (
+                  <div className="space-y-2">
+                    <Label className={labelClass}>
+                      Nome da agência / consultoria
+                    </Label>
+                    <div className="relative">
+                      <Building2 className={iconClass} />
+                      <Input
+                        value={tenantName}
+                        onChange={(e) => setTenantName(e.target.value)}
+                        placeholder="Ex.: Deep Ocean Talent"
+                        className={inputClass}
+                        autoComplete="organization"
+                      />
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
 
               <div className="space-y-2">
-                <Label className={labelClass}>E-mail profissional</Label>
+                <Label className={labelClass}>E-mail</Label>
                 <div className="relative">
                   <Mail className={iconClass} />
                   <Input
@@ -306,7 +318,7 @@ export default function Signup() {
                   disabled={!isValid || isSubmitting}
                   className="h-11 rounded-2xl hr-btn-primary disabled:opacity-60"
                 >
-                  {isSubmitting ? "Criando…" : "Criar minha agência"}
+                  {isSubmitting ? "Criando…" : hasInvite ? "Aceitar convite" : "Criar minha agência"}
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
 
@@ -328,8 +340,9 @@ export default function Signup() {
               ) : null}
 
               <p className="text-xs leading-relaxed text-slate-500 dark:text-slate-400">
-                Ao continuar, você se torna o Admin (Owner) do tenant e poderá
-                convidar a sua equipe depois.
+                {hasInvite
+                  ? "Ao continuar, você entra no tenant que te convidou."
+                  : "Ao continuar, você se torna o Admin (Owner) do tenant e poderá convidar a sua equipe depois."}
               </p>
             </form>
           </Card>
