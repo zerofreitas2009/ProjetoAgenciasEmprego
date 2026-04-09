@@ -28,6 +28,7 @@ import {
   PanelLeftOpen,
   Settings as SettingsIcon,
   Crown,
+  Building2,
 } from "lucide-react";
 
 const MASTER_EMAIL = "zerofreitas2009@gmail.com";
@@ -42,6 +43,11 @@ const NAV = [
     to: "/dashboard/vagas",
     label: "Vagas",
     icon: BriefcaseBusiness,
+  },
+  {
+    to: "/dashboard/clientes",
+    label: "Clientes",
+    icon: Building2,
   },
   {
     to: "/settings",
@@ -197,13 +203,15 @@ function LayoutShell({ children }: PropsWithChildren) {
       ? "Dashboard"
       : location.pathname.startsWith("/dashboard/vagas")
         ? "Vagas"
-        : location.pathname.startsWith("/settings")
-          ? "Configurações"
-          : location.pathname.startsWith("/finance")
-            ? "Financeiro"
-            : location.pathname.startsWith("/master")
-              ? "Dashboard Master"
-              : "Painel";
+        : location.pathname.startsWith("/dashboard/clientes")
+          ? "Clientes"
+          : location.pathname.startsWith("/settings")
+            ? "Configurações"
+            : location.pathname.startsWith("/finance")
+              ? "Financeiro"
+              : location.pathname.startsWith("/master")
+                ? "Dashboard Master"
+                : "Painel";
 
   const brandName = tenantBrandQuery.data?.name ?? null;
   const logoSrc = tenantBrandQuery.data?.logo_data_url ?? null;

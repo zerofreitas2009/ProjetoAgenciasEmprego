@@ -4,6 +4,7 @@ import { BriefcaseBusiness, Building2 } from "lucide-react";
 
 export type HrJob = {
   id: string;
+  company_id?: string;
   title: string;
   description: string | null;
   salary_range: string | null;

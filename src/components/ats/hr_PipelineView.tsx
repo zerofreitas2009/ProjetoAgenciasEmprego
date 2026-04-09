@@ -338,8 +338,8 @@ export function hr_PipelineView({
                                   onClick={() => onToggleShortlist(a.id)}
                                   title={
                                     isShortlisted
-                                      ? "Remover da shortlist"
-                                      : "Selecionar para o cliente"
+                                      ? "Desmarcar (tirar de Aprovados para Triagem)"
+                                      : "Marcar como Aprovados para Triagem"
                                   }
                                 >
                                   <Star

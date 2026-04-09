@@ -179,7 +179,7 @@ export default function Dashboard() {
       const { data, error } = await supabase
         .from("hr_jobs")
         .select(
-          "id, title, description, salary_range, requirements, status, created_at, company:hr_companies!hr_jobs_company_id_fkey(name)"
+          "id, company_id, title, description, salary_range, requirements, status, created_at, company:hr_companies!hr_jobs_company_id_fkey(name)"
         )
         .order("created_at", { ascending: false })
         .limit(50);
@@ -258,6 +258,14 @@ export default function Dashboard() {
         .delete()
         .eq("application_id", applicationId);
       if (!error) shortlistQuery.refetch();
+
+      // If the application was only "approved for triage", revert the stage.
+      await supabase
+        .from("hr_applications")
+        .update({ current_stage: "Triagem" })
+        .eq("id", applicationId)
+        .eq("current_stage", "Aprovados para Triagem");
+
       return;
     }
 
@@ -270,18 +278,25 @@ export default function Dashboard() {
       application_id: applicationId,
     });
 
-    if (!error) shortlistQuery.refetch();
+    if (!error) {
+      await supabase
+        .from("hr_applications")
+        .update({ current_stage: "Aprovados para Triagem" })
+        .eq("id", applicationId);
+      shortlistQuery.refetch();
+    }
   }
 
   async function generateGuestLink() {
     if (!selectedJob) return;
     setIsGeneratingLink(true);
     try {
-      const { data, error } = await supabase.rpc("hr_get_or_create_guest_link", {
-        p_job_id: selectedJob.id,
+      const { data, error } = await supabase.rpc("hr_get_or_create_client_portal_link", {
+        p_company_id: (selectedJob as any).company_id,
       });
       if (error) throw error;
-      setGuestLink(String(data ?? ""));
+      const token = String(data ?? "");
+      setGuestLink(`${window.location.origin}/client/${token}`);
     } finally {
       setIsGeneratingLink(false);
     }
