@@ -23,6 +23,7 @@ import {
   Wallet,
   PanelLeftClose,
   PanelLeftOpen,
+  Settings as SettingsIcon,
 } from "lucide-react";
 
 const NAV = [
@@ -35,6 +36,11 @@ const NAV = [
     to: "/dashboard/vagas",
     label: "Vagas",
     icon: BriefcaseBusiness,
+  },
+  {
+    to: "/settings",
+    label: "Configurações",
+    icon: SettingsIcon,
   },
   {
     to: "/finance",
@@ -104,6 +110,25 @@ export function Layout({ children }: PropsWithChildren) {
     },
   });
 
+  const tenantBrandQuery = useQuery({
+    queryKey: ["hr_tenant_branding"],
+    enabled: !!session,
+    queryFn: async () => {
+      const { data: tenantId, error: tenantErr } = await supabase.rpc(
+        "get_hr_tenant"
+      );
+      if (tenantErr) throw tenantErr;
+
+      const { data, error } = await supabase
+        .from("hr_tenants")
+        .select("id, name, logo_data_url")
+        .eq("id", tenantId as string)
+        .single();
+      if (error) throw error;
+      return data as { id: string; name: string; logo_data_url: string | null };
+    },
+  });
+
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -128,9 +153,14 @@ export function Layout({ children }: PropsWithChildren) {
       ? "Dashboard"
       : location.pathname.startsWith("/dashboard/vagas")
         ? "Vagas"
-        : location.pathname.startsWith("/finance")
-          ? "Financeiro"
-          : "Painel";
+        : location.pathname.startsWith("/settings")
+          ? "Configurações"
+          : location.pathname.startsWith("/finance")
+            ? "Financeiro"
+            : "Painel";
+
+  const brandName = tenantBrandQuery.data?.name ?? null;
+  const logoSrc = tenantBrandQuery.data?.logo_data_url ?? null;
 
   return (
     <div className="min-h-screen bg-white text-slate-900 dark:bg-[#020617] dark:text-slate-100">
@@ -151,7 +181,7 @@ export function Layout({ children }: PropsWithChildren) {
                 collapsed && "justify-center"
               )}
             >
-              <HrLogo size="sm" withText={!collapsed} />
+              <HrLogo size="sm" withText={!collapsed} brandName={brandName} logoSrc={logoSrc} />
             </Link>
 
             <button
@@ -199,7 +229,7 @@ export function Layout({ children }: PropsWithChildren) {
                   <SheetContent side="left" className="w-[300px]">
                     <SheetHeader>
                       <SheetTitle>
-                        <HrLogo size="md" />
+                        <HrLogo size="md" brandName={brandName} logoSrc={logoSrc} />
                       </SheetTitle>
                     </SheetHeader>
                     <NavLinks
@@ -214,7 +244,7 @@ export function Layout({ children }: PropsWithChildren) {
                   className="inline-flex items-center rounded-2xl px-2.5 py-2 transition hover:bg-white/60 dark:hover:bg-white/10"
                   title="Home"
                 >
-                  <HrLogo size="sm" withText={false} />
+                  <HrLogo size="sm" withText={false} brandName={brandName} logoSrc={logoSrc} />
                 </Link>
 
                 <div className="hidden rounded-2xl bg-white/60 px-3 py-2 text-sm font-semibold text-slate-900 ring-1 ring-slate-200 dark:bg-white/5 dark:text-white dark:ring-white/10 sm:block">

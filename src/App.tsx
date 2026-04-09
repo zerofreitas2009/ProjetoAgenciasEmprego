@@ -14,6 +14,7 @@ import Finance from "./pages/Finance";
 import JobsPublic from "./pages/JobsPublic";
 import JobPublicDetails from "./pages/JobPublicDetails";
 import JobsAdmin from "./pages/JobsAdmin";
+import Settings from "./pages/Settings";
 import { SessionProvider } from "@/auth/SessionProvider";
 import { ThemeProvider } from "@/components/ThemeProvider";
 
@@ -34,6 +35,7 @@ const App = () => (
               <Route path="/login" element={<Login />} />
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/dashboard/vagas" element={<JobsAdmin />} />
+              <Route path="/settings" element={<Settings />} />
               <Route path="/finance" element={<Finance />} />
               <Route
                 path="/candidates/:candidateId"
