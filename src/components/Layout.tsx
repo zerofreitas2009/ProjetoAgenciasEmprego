@@ -8,6 +8,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { hr_Logo as HrLogo } from "@/components/hr_Logo";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { PremiumProvider, usePremium } from "@/components/premium/PremiumContext";
 import {
   Sheet,
@@ -122,6 +123,28 @@ function LayoutShell({ children }: PropsWithChildren) {
     },
   });
 
+  const meQuery = useQuery({
+    queryKey: ["hr_me_identity"],
+    enabled: !!session,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("hr_profiles")
+        .select("full_name, job_title, avatar_data_url")
+        .eq("id", session!.user.id)
+        .maybeSingle();
+
+      if (error) throw error;
+
+      return (
+        (data as {
+          full_name: string | null;
+          job_title: string | null;
+          avatar_data_url: string | null;
+        } | null) ?? null
+      );
+    },
+  });
+
   const tenantBrandQuery = useQuery({
     queryKey: ["hr_tenant_branding"],
     enabled: !!session,
@@ -187,6 +210,15 @@ function LayoutShell({ children }: PropsWithChildren) {
   const planStatus = (tenantBrandQuery.data?.plan_status ?? "trial").toLowerCase();
   const isTrial = planStatus === "trial";
 
+  const displayName =
+    meQuery.data?.full_name?.trim() ||
+    session?.user.user_metadata?.full_name?.trim?.() ||
+    email ||
+    "Usuário";
+  const jobTitle = meQuery.data?.job_title?.trim() || null;
+  const avatarSrc = meQuery.data?.avatar_data_url ?? null;
+  const initials = (displayName || "U").slice(0, 2).toUpperCase();
+
   return (
     <div className="min-h-screen bg-white text-slate-900 dark:bg-[#020617] dark:text-slate-100">
       <div className="mx-auto flex w-full max-w-7xl gap-6 px-4 py-6">
@@ -234,11 +266,24 @@ function LayoutShell({ children }: PropsWithChildren) {
           {collapsed ? null : (
             <div className="mt-auto">
               <div className="mt-6 rounded-2xl bg-white/60 p-3 text-xs text-slate-600 ring-1 ring-slate-200 dark:bg-white/5 dark:text-slate-300 dark:ring-white/10">
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex min-w-0 items-center gap-2">
-                    <UserRound className="h-4 w-4" />
-                    <span className="truncate">{email || "Sessão"}</span>
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex min-w-0 items-start gap-2">
+                    <Avatar className="mt-0.5 h-8 w-8 rounded-2xl">
+                      <AvatarImage src={avatarSrc ?? ""} />
+                      <AvatarFallback className="rounded-2xl bg-slate-100 text-[10px] font-semibold text-slate-700 dark:bg-white/10 dark:text-slate-200">
+                        {initials}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="min-w-0">
+                      <div className="truncate text-[12px] font-semibold text-slate-900 dark:text-white">
+                        {displayName}
+                      </div>
+                      <div className="mt-0.5 truncate text-[11px] text-slate-600 dark:text-slate-300">
+                        {jobTitle ?? email}
+                      </div>
+                    </div>
                   </div>
+
                   {isTrial ? (
                     <Badge className="rounded-full bg-amber-500/15 text-amber-700 ring-1 ring-amber-500/20 dark:text-amber-200">
                       Trial
@@ -315,6 +360,23 @@ function LayoutShell({ children }: PropsWithChildren) {
               </div>
 
               <div className="flex items-center gap-2">
+                <div className="hidden items-center gap-2 rounded-2xl bg-white/60 px-2.5 py-2 ring-1 ring-slate-200 dark:bg-white/5 dark:ring-white/10 sm:flex">
+                  <Avatar className="h-7 w-7 rounded-2xl">
+                    <AvatarImage src={avatarSrc ?? ""} />
+                    <AvatarFallback className="rounded-2xl bg-slate-100 text-[10px] font-semibold text-slate-700 dark:bg-white/10 dark:text-slate-200">
+                      {initials}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="leading-tight">
+                    <div className="max-w-[160px] truncate text-xs font-semibold text-slate-900 dark:text-white">
+                      {displayName}
+                    </div>
+                    <div className="max-w-[160px] truncate text-[11px] text-slate-600 dark:text-slate-300">
+                      {jobTitle ?? ""}
+                    </div>
+                  </div>
+                </div>
+
                 {isTrial ? (
                   <Button
                     variant="secondary"
