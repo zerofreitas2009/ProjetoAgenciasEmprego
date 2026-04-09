@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
@@ -46,12 +46,15 @@ import {
   Search,
   Trash2,
   Phone,
+  Upload,
+  X,
 } from "lucide-react";
 
 type ClientRow = {
   id: string;
   name: string;
   logo_url: string | null;
+  cpf_cnpj: string | null;
   contact_email: string | null;
   contact_phone: string | null;
   created_at: string;
@@ -66,6 +69,7 @@ function normalizeUrl(input: string) {
   const v = input.trim();
   if (!v) return "";
   if (v.startsWith("http://") || v.startsWith("https://")) return v;
+  if (v.startsWith("data:")) return v;
   return `https://${v}`;
 }
 
@@ -96,6 +100,37 @@ function formatPhoneBR(raw: string) {
   return `(${ddd}) ${p1}-${p2}`;
 }
 
+function formatCpfCnpj(raw: string) {
+  const digits = onlyDigits(raw).slice(0, 14);
+  if (!digits) return "";
+
+  // CPF: 000.000.000-00
+  if (digits.length <= 11) {
+    const p1 = digits.slice(0, 3);
+    const p2 = digits.slice(3, 6);
+    const p3 = digits.slice(6, 9);
+    const p4 = digits.slice(9, 11);
+
+    if (digits.length <= 3) return p1;
+    if (digits.length <= 6) return `${p1}.${p2}`;
+    if (digits.length <= 9) return `${p1}.${p2}.${p3}`;
+    return `${p1}.${p2}.${p3}-${p4}`;
+  }
+
+  // CNPJ: 00.000.000/0000-00
+  const p1 = digits.slice(0, 2);
+  const p2 = digits.slice(2, 5);
+  const p3 = digits.slice(5, 8);
+  const p4 = digits.slice(8, 12);
+  const p5 = digits.slice(12, 14);
+
+  if (digits.length <= 2) return p1;
+  if (digits.length <= 5) return `${p1}.${p2}`;
+  if (digits.length <= 8) return `${p1}.${p2}.${p3}`;
+  if (digits.length <= 12) return `${p1}.${p2}.${p3}/${p4}`;
+  return `${p1}.${p2}.${p3}/${p4}-${p5}`;
+}
+
 function isValidEmail(v: string) {
   const email = v.trim();
   if (!email) return false;
@@ -105,6 +140,11 @@ function isValidEmail(v: string) {
 function isValidPhoneBR(v: string) {
   const len = onlyDigits(v).length;
   return len === 10 || len === 11;
+}
+
+function isValidCpfCnpj(v: string) {
+  const len = onlyDigits(v).length;
+  return len === 11 || len === 14;
 }
 
 export default function ClientsAdmin() {
@@ -117,9 +157,12 @@ export default function ClientsAdmin() {
   const [editing, setEditing] = useState<ClientRow | null>(null);
   const [name, setName] = useState("");
   const [logoUrl, setLogoUrl] = useState("");
+  const [cpfCnpj, setCpfCnpj] = useState("");
   const [contactEmail, setContactEmail] = useState("");
   const [contactPhone, setContactPhone] = useState("");
   const [saving, setSaving] = useState(false);
+
+  const logoInputRef = useRef<HTMLInputElement | null>(null);
 
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleteName, setDeleteName] = useState<string | null>(null);
@@ -136,7 +179,7 @@ export default function ClientsAdmin() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("hr_companies")
-        .select("id, name, logo_url, contact_email, contact_phone, created_at")
+        .select("id, name, logo_url, cpf_cnpj, contact_email, contact_phone, created_at")
         .order("created_at", { ascending: false })
         .limit(500);
 
@@ -152,10 +195,12 @@ export default function ClientsAdmin() {
     return list.filter((c) => {
       const email = (c.contact_email ?? "").toLowerCase();
       const phone = (c.contact_phone ?? "").toLowerCase();
+      const doc = (c.cpf_cnpj ?? "").toLowerCase();
       return (
         c.name.toLowerCase().includes(query) ||
         email.includes(query) ||
-        phone.includes(query)
+        phone.includes(query) ||
+        doc.includes(query)
       );
     });
   }, [clientsQuery.data, q]);
@@ -164,6 +209,7 @@ export default function ClientsAdmin() {
     setEditing(null);
     setName("");
     setLogoUrl("");
+    setCpfCnpj("");
     setContactEmail("");
     setContactPhone("");
     setUpsertOpen(true);
@@ -173,6 +219,7 @@ export default function ClientsAdmin() {
     setEditing(c);
     setName(c.name ?? "");
     setLogoUrl(c.logo_url ?? "");
+    setCpfCnpj(c.cpf_cnpj ?? "");
     setContactEmail(c.contact_email ?? "");
     setContactPhone(c.contact_phone ?? "");
     setUpsertOpen(true);
@@ -180,23 +227,69 @@ export default function ClientsAdmin() {
 
   const emailOk = isValidEmail(contactEmail);
   const phoneOk = isValidPhoneBR(contactPhone);
+  const docOk = isValidCpfCnpj(cpfCnpj);
+
+  async function onPickLogo(file: File | null) {
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const url = String(reader.result ?? "");
+      setLogoUrl(url);
+    };
+    reader.readAsDataURL(file);
+  }
 
   async function saveClient() {
     const n = name.trim();
     const email = contactEmail.trim().toLowerCase();
-    const phone = contactPhone.trim();
+    const phoneFormatted = formatPhoneBR(contactPhone.trim());
+    const docFormatted = formatCpfCnpj(cpfCnpj.trim());
 
-    if (!n) return;
-    if (!isValidEmail(email)) return;
-    if (!isValidPhoneBR(phone)) return;
+    if (!n) {
+      toast({
+        title: "Preencha os campos obrigatórios",
+        description: "Informe o nome do cliente.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!isValidCpfCnpj(docFormatted)) {
+      toast({
+        title: "CPF/CNPJ inválido",
+        description: "Informe um CPF (11 dígitos) ou CNPJ (14 dígitos).",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!isValidEmail(email)) {
+      toast({
+        title: "E-mail inválido",
+        description: "Informe um e-mail válido do contato.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!isValidPhoneBR(phoneFormatted)) {
+      toast({
+        title: "Telefone inválido",
+        description: "Informe um telefone válido com DDD (10 ou 11 dígitos).",
+        variant: "destructive",
+      });
+      return;
+    }
 
     setSaving(true);
     try {
       const payload = {
         name: n,
+        cpf_cnpj: docFormatted,
         logo_url: logoUrl.trim() ? normalizeUrl(logoUrl) : null,
         contact_email: email,
-        contact_phone: formatPhoneBR(phone),
+        contact_phone: phoneFormatted,
       } as const;
 
       if (editing) {
@@ -327,7 +420,7 @@ export default function ClientsAdmin() {
               <Input
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
-                placeholder="Buscar por nome, e-mail ou telefone…"
+                placeholder="Buscar por nome, e-mail, telefone ou CPF/CNPJ…"
                 className="h-11 rounded-2xl bg-white/70 pl-10 ring-1 ring-slate-200 backdrop-blur-md dark:bg-white/5 dark:ring-white/10"
               />
             </div>
@@ -408,6 +501,11 @@ export default function ClientsAdmin() {
                             <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                               Criado em {new Date(c.created_at).toLocaleDateString()}
                             </div>
+                            {c.cpf_cnpj ? (
+                              <div className="mt-1 text-xs text-slate-600 dark:text-slate-300">
+                                CPF/CNPJ: {c.cpf_cnpj}
+                              </div>
+                            ) : null}
                             {link ? (
                               <div className="mt-2 line-clamp-1 text-xs text-slate-600 dark:text-slate-300">
                                 {link}
@@ -519,6 +617,26 @@ export default function ClientsAdmin() {
               </div>
 
               <div className="grid gap-2">
+                <Label htmlFor="client-doc">CPF ou CNPJ *</Label>
+                <Input
+                  id="client-doc"
+                  value={cpfCnpj}
+                  onChange={(e) => setCpfCnpj(formatCpfCnpj(e.target.value))}
+                  inputMode="numeric"
+                  placeholder="000.000.000-00 ou 00.000.000/0000-00"
+                  className={cn(
+                    "h-11 rounded-2xl",
+                    cpfCnpj.trim() && !docOk && "ring-2 ring-rose-500/35"
+                  )}
+                />
+                {cpfCnpj.trim() && !docOk ? (
+                  <div className="text-xs text-rose-600 dark:text-rose-300">
+                    Informe um CPF (11 dígitos) ou CNPJ (14 dígitos).
+                  </div>
+                ) : null}
+              </div>
+
+              <div className="grid gap-2">
                 <Label htmlFor="client-email">E-mail do contato *</Label>
                 <Input
                   id="client-email"
@@ -558,14 +676,53 @@ export default function ClientsAdmin() {
               </div>
 
               <div className="grid gap-2">
-                <Label htmlFor="client-logo">Logo (URL)</Label>
-                <Input
-                  id="client-logo"
-                  value={logoUrl}
-                  onChange={(e) => setLogoUrl(e.target.value)}
-                  placeholder="https://…"
-                  className="h-11 rounded-2xl"
+                <Label>Logomarca</Label>
+
+                <input
+                  ref={logoInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => void onPickLogo(e.target.files?.[0] ?? null)}
                 />
+
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="h-11 rounded-xl hr-btn-secondary"
+                    onClick={() => logoInputRef.current?.click()}
+                  >
+                    <Upload className="mr-2 h-4 w-4" />
+                    Upload da logomarca
+                  </Button>
+
+                  {logoUrl.trim() ? (
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      className="h-11 rounded-xl hr-btn-secondary"
+                      onClick={() => setLogoUrl("")}
+                    >
+                      <X className="mr-2 h-4 w-4" />
+                      Remover
+                    </Button>
+                  ) : null}
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="client-logo-url" className="text-xs text-slate-600 dark:text-slate-300">
+                    (Opcional) URL do logo
+                  </Label>
+                  <Input
+                    id="client-logo-url"
+                    value={logoUrl.trim().startsWith("data:") ? "" : logoUrl}
+                    onChange={(e) => setLogoUrl(e.target.value)}
+                    placeholder="https://…"
+                    className="h-11 rounded-2xl"
+                  />
+                </div>
+
                 {logoUrl.trim() ? (
                   <div className="flex items-center gap-3 rounded-2xl bg-white/60 p-3 ring-1 ring-slate-200 dark:bg-white/5 dark:ring-white/10">
                     <div className="h-12 w-12 overflow-hidden rounded-2xl ring-1 ring-[hsl(var(--electric-indigo))]/20">
@@ -593,7 +750,7 @@ export default function ClientsAdmin() {
               </Button>
               <Button
                 className="h-11 rounded-xl hr-btn-primary"
-                disabled={saving || !name.trim() || !emailOk || !phoneOk}
+                disabled={saving || !name.trim() || !docOk || !emailOk || !phoneOk}
                 onClick={saveClient}
               >
                 {saving ? "Salvando…" : "Salvar"}

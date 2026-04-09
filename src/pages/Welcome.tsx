@@ -147,7 +147,13 @@ export default function Welcome() {
 
       const { data: companyRow, error: companyErr } = await supabase
         .from("hr_companies")
-        .insert({ tenant_id: tenantId, name: "Nautilus Tech (Demo)" })
+        .insert({
+          tenant_id: tenantId,
+          name: "Nautilus Tech (Demo)",
+          cpf_cnpj: "12.345.678/0001-90",
+          contact_email: `demo.${tenantId.slice(0, 6)}@nautilus.tech`,
+          contact_phone: "(11) 91234-5678",
+        })
         .select("id")
         .single();
       if (companyErr) throw companyErr;
