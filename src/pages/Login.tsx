@@ -63,6 +63,23 @@ export default function Login() {
         .eq("id", session.user.id)
         .maybeSingle();
 
+      // se o usuário existe no auth mas ainda não tem registros hr_*, criamos agora
+      if (!error && !data) {
+        await supabase.rpc("hr_bootstrap_existing_user", {
+          p_tenant_name:
+            String(session.user.user_metadata?.tenant_name ?? "").trim() ||
+            String(session.user.email ?? "").split("@")[0] ||
+            "Agência",
+          p_full_name:
+            String(session.user.user_metadata?.full_name ?? "").trim() ||
+            String(session.user.email ?? "") ||
+            "Admin",
+        });
+
+        navigate("/welcome", { replace: true });
+        return;
+      }
+
       if (!error && data && data.onboarding_completed === false) {
         navigate("/welcome", { replace: true });
         return;

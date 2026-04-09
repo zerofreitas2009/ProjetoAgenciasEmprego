@@ -73,11 +73,24 @@ export default function Signup() {
     });
   }
 
+  async function bootstrapHrForSignedInUser(args: {
+    tenantName: string;
+    fullName: string;
+  }) {
+    // garante que o usuário tenha registros nas tabelas hr_* (hr_tenants/hr_profiles)
+    await supabase.rpc("hr_bootstrap_existing_user", {
+      p_tenant_name: args.tenantName,
+      p_full_name: args.fullName,
+    });
+  }
+
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     if (!isValid || isSubmitting) return;
 
     const normalizedEmail = email.trim().toLowerCase();
+    const normalizedTenantName = tenantName.trim();
+    const normalizedFullName = fullName.trim();
 
     setIsSubmitting(true);
     setAwaitingConfirmation(false);
@@ -88,8 +101,8 @@ export default function Signup() {
         password,
         options: {
           data: {
-            full_name: fullName.trim(),
-            tenant_name: tenantName.trim(),
+            full_name: normalizedFullName,
+            tenant_name: normalizedTenantName,
             role: "ADMIN",
           },
         },
@@ -98,6 +111,11 @@ export default function Signup() {
       if (error) throw error;
 
       if (data.session) {
+        // session imediata (quando confirmação por email está desligada)
+        await bootstrapHrForSignedInUser({
+          tenantName: normalizedTenantName,
+          fullName: normalizedFullName,
+        });
         navigate("/welcome", { replace: true });
         return;
       }
@@ -112,18 +130,53 @@ export default function Signup() {
       const msg = String(e?.message ?? "").toLowerCase();
 
       if (msg.includes("already registered") || msg.includes("already exists")) {
-        setAwaitingConfirmation(true);
+        // Se o auth user já existe, tentamos autenticar com a senha informada.
+        // Se der certo, garantimos o bootstrap nas tabelas hr_*.
+        const { data: signInData, error: signInErr } =
+          await supabase.auth.signInWithPassword({
+            email: normalizedEmail,
+            password,
+          });
+
+        if (!signInErr && signInData.session) {
+          await bootstrapHrForSignedInUser({
+            tenantName: normalizedTenantName,
+            fullName: normalizedFullName,
+          });
+          navigate("/welcome", { replace: true });
+          return;
+        }
+
+        const signInMsg = String(signInErr?.message ?? "").toLowerCase();
+
+        // caso típico: conta existe mas e-mail ainda não foi confirmado
+        if (signInMsg.includes("email not confirmed") || signInMsg.includes("confirm")) {
+          setAwaitingConfirmation(true);
+          toast({
+            title: "Confirmação pendente",
+            description:
+              "Esse e-mail já está cadastrado, mas parece que a confirmação ainda não foi feita. Quer reenviar o link?",
+            variant: "destructive",
+            action: (
+              <ToastAction
+                altText="Reenviar confirmação"
+                onClick={() => void resendConfirmation(normalizedEmail)}
+              >
+                Reenviar
+              </ToastAction>
+            ),
+          });
+          return;
+        }
+
         toast({
           title: "Este e-mail já está cadastrado",
           description:
-            "Se você já tentou criar essa conta antes, talvez só falte confirmar o e-mail. Quer reenviar o link de confirmação?",
+            "Para continuar, entre com a mesma senha desse e-mail. Se não lembrar, use a tela de login para recuperar.",
           variant: "destructive",
           action: (
-            <ToastAction
-              altText="Reenviar confirmação"
-              onClick={() => void resendConfirmation(normalizedEmail)}
-            >
-              Reenviar
+            <ToastAction altText="Ir para login" onClick={() => navigate("/login")}>
+              Ir para login
             </ToastAction>
           ),
         });
