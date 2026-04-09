@@ -22,6 +22,14 @@ const fadeUp = {
   show: { opacity: 1, y: 0 },
 };
 
+const inputClass =
+  "h-11 rounded-2xl bg-white/85 pl-10 text-slate-900 placeholder:text-slate-400 ring-1 ring-slate-200 focus-visible:ring-[hsl(var(--primary))] dark:bg-white/5 dark:text-slate-100 dark:ring-white/10 dark:placeholder:text-slate-400";
+
+const labelClass = "text-slate-700 dark:text-slate-200";
+
+const iconClass =
+  "pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 dark:text-slate-300";
+
 export default function Signup() {
   const navigate = useNavigate();
 
@@ -129,34 +137,34 @@ export default function Signup() {
           transition={{ delay: 0.06, type: "spring", stiffness: 260, damping: 24 }}
           className="mt-8"
         >
-          <Card className="rounded-[34px] p-6 hr-glass">
+          <Card className="rounded-[34px] p-6 hr-glass text-slate-900 dark:text-slate-100">
             <form onSubmit={onSubmit} className="space-y-5">
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <Label className="text-slate-200">Nome completo</Label>
+                  <Label className={labelClass}>Nome completo</Label>
                   <div className="relative">
-                    <UserRound className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-300" />
+                    <UserRound className={iconClass} />
                     <Input
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
                       placeholder="Ex.: Marina Carvalho"
-                      className="h-11 rounded-2xl border-white/10 bg-white/5 pl-10 text-slate-100 placeholder:text-slate-400 focus-visible:ring-[hsl(var(--primary))]"
+                      className={inputClass}
                       autoComplete="name"
                     />
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-slate-200">
+                  <Label className={labelClass}>
                     Nome da agência / consultoria
                   </Label>
                   <div className="relative">
-                    <Building2 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-300" />
+                    <Building2 className={iconClass} />
                     <Input
                       value={tenantName}
                       onChange={(e) => setTenantName(e.target.value)}
                       placeholder="Ex.: Deep Ocean Talent"
-                      className="h-11 rounded-2xl border-white/10 bg-white/5 pl-10 text-slate-100 placeholder:text-slate-400 focus-visible:ring-[hsl(var(--primary))]"
+                      className={inputClass}
                       autoComplete="organization"
                     />
                   </div>
@@ -164,29 +172,29 @@ export default function Signup() {
               </div>
 
               <div className="space-y-2">
-                <Label className="text-slate-200">E-mail profissional</Label>
+                <Label className={labelClass}>E-mail profissional</Label>
                 <div className="relative">
-                  <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-300" />
+                  <Mail className={iconClass} />
                   <Input
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="voce@empresa.com"
-                    className="h-11 rounded-2xl border-white/10 bg-white/5 pl-10 text-slate-100 placeholder:text-slate-400 focus-visible:ring-[hsl(var(--primary))]"
+                    className={inputClass}
                     autoComplete="email"
                   />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label className="text-slate-200">Senha</Label>
+                <Label className={labelClass}>Senha</Label>
                 <div className="relative">
-                  <KeyRound className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-300" />
+                  <KeyRound className={iconClass} />
                   <Input
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Mínimo 8 caracteres"
                     type="password"
-                    className="h-11 rounded-2xl border-white/10 bg-white/5 pl-10 text-slate-100 placeholder:text-slate-400 focus-visible:ring-[hsl(var(--primary))]"
+                    className={inputClass}
                     autoComplete="new-password"
                   />
                 </div>
@@ -202,11 +210,11 @@ export default function Signup() {
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
 
-                <div className="text-sm text-slate-300">
+                <div className="text-sm text-slate-600 dark:text-slate-300">
                   Já tem conta?{" "}
                   <Link
                     to="/login"
-                    className="font-semibold text-white underline-offset-4 hover:underline"
+                    className="font-semibold text-[hsl(var(--electric-indigo))] underline-offset-4 hover:underline dark:text-white"
                   >
                     Entrar
                   </Link>
@@ -214,12 +222,12 @@ export default function Signup() {
               </div>
 
               {awaitingConfirmation ? (
-                <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-200">
+                <div className="rounded-2xl border border-slate-200 bg-white/70 px-4 py-3 text-sm text-slate-700 ring-1 ring-slate-200 dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:ring-white/10">
                   Confirmação pendente: verifique seu e-mail para finalizar o acesso.
                 </div>
               ) : null}
 
-              <p className="text-xs leading-relaxed text-slate-400">
+              <p className="text-xs leading-relaxed text-slate-500 dark:text-slate-400">
                 Ao continuar, você se torna o Admin (Owner) do tenant e poderá
                 convidar a sua equipe depois.
               </p>
