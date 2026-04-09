@@ -45,6 +45,7 @@ import {
   Plus,
   Search,
   Trash2,
+  Phone,
 } from "lucide-react";
 
 type ClientRow = {
@@ -52,6 +53,7 @@ type ClientRow = {
   name: string;
   logo_url: string | null;
   contact_email: string | null;
+  contact_phone: string | null;
   created_at: string;
 };
 
@@ -67,6 +69,44 @@ function normalizeUrl(input: string) {
   return `https://${v}`;
 }
 
+function onlyDigits(v: string) {
+  return v.replace(/\D/g, "");
+}
+
+function formatPhoneBR(raw: string) {
+  const digits = onlyDigits(raw).slice(0, 11);
+  const ddd = digits.slice(0, 2);
+  const rest = digits.slice(2);
+
+  if (!digits) return "";
+  if (digits.length <= 2) return `(${ddd}`;
+
+  // 10 digits: (11) 1234-5678
+  if (digits.length <= 10) {
+    const p1 = rest.slice(0, 4);
+    const p2 = rest.slice(4, 8);
+    if (rest.length <= 4) return `(${ddd}) ${p1}`;
+    return `(${ddd}) ${p1}-${p2}`;
+  }
+
+  // 11 digits: (11) 91234-5678
+  const p1 = rest.slice(0, 5);
+  const p2 = rest.slice(5, 9);
+  if (rest.length <= 5) return `(${ddd}) ${p1}`;
+  return `(${ddd}) ${p1}-${p2}`;
+}
+
+function isValidEmail(v: string) {
+  const email = v.trim();
+  if (!email) return false;
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+function isValidPhoneBR(v: string) {
+  const len = onlyDigits(v).length;
+  return len === 10 || len === 11;
+}
+
 export default function ClientsAdmin() {
   const { session, isLoading } = useSession();
   const queryClient = useQueryClient();
@@ -78,6 +118,7 @@ export default function ClientsAdmin() {
   const [name, setName] = useState("");
   const [logoUrl, setLogoUrl] = useState("");
   const [contactEmail, setContactEmail] = useState("");
+  const [contactPhone, setContactPhone] = useState("");
   const [saving, setSaving] = useState(false);
 
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -95,7 +136,7 @@ export default function ClientsAdmin() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("hr_companies")
-        .select("id, name, logo_url, contact_email, created_at")
+        .select("id, name, logo_url, contact_email, contact_phone, created_at")
         .order("created_at", { ascending: false })
         .limit(500);
 
@@ -110,7 +151,12 @@ export default function ClientsAdmin() {
     if (!query) return list;
     return list.filter((c) => {
       const email = (c.contact_email ?? "").toLowerCase();
-      return c.name.toLowerCase().includes(query) || email.includes(query);
+      const phone = (c.contact_phone ?? "").toLowerCase();
+      return (
+        c.name.toLowerCase().includes(query) ||
+        email.includes(query) ||
+        phone.includes(query)
+      );
     });
   }, [clientsQuery.data, q]);
 
@@ -119,6 +165,7 @@ export default function ClientsAdmin() {
     setName("");
     setLogoUrl("");
     setContactEmail("");
+    setContactPhone("");
     setUpsertOpen(true);
   }
 
@@ -127,19 +174,29 @@ export default function ClientsAdmin() {
     setName(c.name ?? "");
     setLogoUrl(c.logo_url ?? "");
     setContactEmail(c.contact_email ?? "");
+    setContactPhone(c.contact_phone ?? "");
     setUpsertOpen(true);
   }
 
+  const emailOk = isValidEmail(contactEmail);
+  const phoneOk = isValidPhoneBR(contactPhone);
+
   async function saveClient() {
     const n = name.trim();
+    const email = contactEmail.trim().toLowerCase();
+    const phone = contactPhone.trim();
+
     if (!n) return;
+    if (!isValidEmail(email)) return;
+    if (!isValidPhoneBR(phone)) return;
 
     setSaving(true);
     try {
       const payload = {
         name: n,
         logo_url: logoUrl.trim() ? normalizeUrl(logoUrl) : null,
-        contact_email: contactEmail.trim() ? contactEmail.trim() : null,
+        contact_email: email,
+        contact_phone: formatPhoneBR(phone),
       } as const;
 
       if (editing) {
@@ -270,7 +327,7 @@ export default function ClientsAdmin() {
               <Input
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
-                placeholder="Buscar por nome ou e-mail…"
+                placeholder="Buscar por nome, e-mail ou telefone…"
                 className="h-11 rounded-2xl bg-white/70 pl-10 ring-1 ring-slate-200 backdrop-blur-md dark:bg-white/5 dark:ring-white/10"
               />
             </div>
@@ -308,7 +365,7 @@ export default function ClientsAdmin() {
                     Cliente
                   </TableHead>
                   <TableHead className="text-slate-600 dark:text-slate-300">
-                    E-mail do contato
+                    Contato
                   </TableHead>
                   <TableHead className="text-right text-slate-600 dark:text-slate-300">
                     Ações
@@ -361,16 +418,16 @@ export default function ClientsAdmin() {
                       </TableCell>
 
                       <TableCell className="py-4">
-                        {c.contact_email ? (
+                        <div className="flex flex-col gap-2">
                           <div className="inline-flex items-center gap-2 rounded-full bg-white/60 px-3 py-2 text-xs font-semibold text-slate-700 ring-1 ring-slate-200 dark:bg-white/10 dark:text-slate-200 dark:ring-white/10">
                             <Mail className="h-3.5 w-3.5" />
-                            <span className="truncate">{c.contact_email}</span>
+                            <span className="truncate">{c.contact_email ?? "—"}</span>
                           </div>
-                        ) : (
-                          <span className="text-sm text-slate-500 dark:text-slate-400">
-                            —
-                          </span>
-                        )}
+                          <div className="inline-flex items-center gap-2 rounded-full bg-white/60 px-3 py-2 text-xs font-semibold text-slate-700 ring-1 ring-slate-200 dark:bg-white/10 dark:text-slate-200 dark:ring-white/10">
+                            <Phone className="h-3.5 w-3.5" />
+                            <span className="truncate">{c.contact_phone ?? "—"}</span>
+                          </div>
+                        </div>
                       </TableCell>
 
                       <TableCell className="py-4 text-right">
@@ -451,14 +508,53 @@ export default function ClientsAdmin() {
 
             <div className="grid gap-4">
               <div className="grid gap-2">
-                <Label htmlFor="client-name">Nome</Label>
+                <Label htmlFor="client-name">Nome *</Label>
                 <Input
                   id="client-name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="Ex.: Agência XPTO (Cliente)"
+                  placeholder="Ex.: Empresa ABC"
                   className="h-11 rounded-2xl"
                 />
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="client-email">E-mail do contato *</Label>
+                <Input
+                  id="client-email"
+                  value={contactEmail}
+                  onChange={(e) => setContactEmail(e.target.value)}
+                  placeholder="contato@empresa.com"
+                  className={cn(
+                    "h-11 rounded-2xl",
+                    contactEmail.trim() && !emailOk && "ring-2 ring-rose-500/35"
+                  )}
+                />
+                {contactEmail.trim() && !emailOk ? (
+                  <div className="text-xs text-rose-600 dark:text-rose-300">
+                    Informe um e-mail válido.
+                  </div>
+                ) : null}
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="client-phone">Telefone do contato *</Label>
+                <Input
+                  id="client-phone"
+                  value={contactPhone}
+                  onChange={(e) => setContactPhone(formatPhoneBR(e.target.value))}
+                  inputMode="tel"
+                  placeholder="(11) 91234-5678"
+                  className={cn(
+                    "h-11 rounded-2xl",
+                    contactPhone.trim() && !phoneOk && "ring-2 ring-rose-500/35"
+                  )}
+                />
+                {contactPhone.trim() && !phoneOk ? (
+                  <div className="text-xs text-rose-600 dark:text-rose-300">
+                    Informe um telefone válido com DDD.
+                  </div>
+                ) : null}
               </div>
 
               <div className="grid gap-2">
@@ -485,17 +581,6 @@ export default function ClientsAdmin() {
                   </div>
                 ) : null}
               </div>
-
-              <div className="grid gap-2">
-                <Label htmlFor="client-email">E-mail do contato</Label>
-                <Input
-                  id="client-email"
-                  value={contactEmail}
-                  onChange={(e) => setContactEmail(e.target.value)}
-                  placeholder="contato@empresa.com"
-                  className="h-11 rounded-2xl"
-                />
-              </div>
             </div>
 
             <DialogFooter>
@@ -508,7 +593,7 @@ export default function ClientsAdmin() {
               </Button>
               <Button
                 className="h-11 rounded-xl hr-btn-primary"
-                disabled={saving || !name.trim()}
+                disabled={saving || !name.trim() || !emailOk || !phoneOk}
                 onClick={saveClient}
               >
                 {saving ? "Salvando…" : "Salvar"}
