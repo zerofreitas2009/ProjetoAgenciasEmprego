@@ -24,6 +24,29 @@ function requirementsCount(requirements: unknown): number {
   return 0;
 }
 
+function statusMeta(status: string) {
+  const s = (status || "").toUpperCase();
+  if (s === "OPEN") {
+    return {
+      label: "Aberta",
+      className:
+        "bg-emerald-100 text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-200",
+    };
+  }
+  if (s === "PAUSED") {
+    return {
+      label: "Pausada",
+      className:
+        "bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-200",
+    };
+  }
+  return {
+    label: "Finalizada",
+    className:
+      "bg-slate-200 text-slate-700 dark:bg-white/10 dark:text-slate-200",
+  };
+}
+
 export function hr_JobCard({
   job,
   selected,
@@ -34,6 +57,7 @@ export function hr_JobCard({
   onSelect: () => void;
 }) {
   const count = requirementsCount(job.requirements);
+  const meta = statusMeta(job.status);
 
   return (
     <button
@@ -71,15 +95,8 @@ export function hr_JobCard({
           ) : null}
         </div>
 
-        <Badge
-          className={cn(
-            "rounded-full px-3 py-1 text-xs font-semibold",
-            job.status === "OPEN"
-              ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-200"
-              : "bg-slate-200 text-slate-700 dark:bg-white/10 dark:text-slate-200"
-          )}
-        >
-          {job.status === "OPEN" ? "Aberta" : "Fechada"}
+        <Badge className={cn("rounded-full px-3 py-1 text-xs font-semibold", meta.className)}>
+          {meta.label}
         </Badge>
       </div>
 

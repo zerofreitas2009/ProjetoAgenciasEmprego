@@ -32,7 +32,7 @@ const NAV = [
     icon: LayoutDashboard,
   },
   {
-    to: "/dashboard",
+    to: "/dashboard/vagas",
     label: "Vagas",
     icon: BriefcaseBusiness,
   },
@@ -126,9 +126,11 @@ export function Layout({ children }: PropsWithChildren) {
   const pageLabel =
     location.pathname === "/dashboard"
       ? "Dashboard"
-      : location.pathname.startsWith("/finance")
-        ? "Financeiro"
-        : "Painel";
+      : location.pathname.startsWith("/dashboard/vagas")
+        ? "Vagas"
+        : location.pathname.startsWith("/finance")
+          ? "Financeiro"
+          : "Painel";
 
   return (
     <div className="min-h-screen bg-white text-slate-900 dark:bg-[#020617] dark:text-slate-100">
@@ -223,20 +225,18 @@ export function Layout({ children }: PropsWithChildren) {
               <div className="flex items-center gap-2">
                 <ThemeToggle />
                 <Button
-                  type="button"
-                  variant="ghost"
-                  className="h-9 w-9 rounded-xl text-slate-700 transition hover:bg-slate-100 hover:text-slate-900 dark:text-slate-200 dark:hover:bg-white/10 dark:hover:text-white"
+                  variant="secondary"
+                  className="h-10 rounded-xl hr-btn-secondary"
                   onClick={() => supabase.auth.signOut()}
-                  aria-label="Sair"
-                  title="Sair"
                 >
-                  <LogOut className="h-4 w-4" />
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Sair
                 </Button>
               </div>
             </header>
           </div>
 
-          <main className="min-w-0">{children}</main>
+          {children}
         </div>
       </div>
     </div>

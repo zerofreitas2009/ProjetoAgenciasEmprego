@@ -18,6 +18,9 @@
     --primary: 262 83% 58%; /* #7C3AED */
     --primary-foreground: 210 40% 98%;
 
+    /* Electric Indigo (neon ring / CTAs) */
+    --electric-indigo: 263 100% 62%; /* close to #6F00FF */
+
     --secondary: 210 40% 98%;
     --secondary-foreground: 222 28% 14%;
 
@@ -69,6 +72,8 @@
 
     --primary: 262 92% 70%;
     --primary-foreground: 222 84% 4%;
+
+    --electric-indigo: 263 100% 72%;
 
     --secondary: 222 28% 12%;
     --secondary-foreground: 210 40% 98%;

@@ -11,6 +11,9 @@ import Apply from "./pages/Apply";
 import CandidateDetails from "./pages/CandidateDetails";
 import ClientShortlist from "./pages/ClientShortlist";
 import Finance from "./pages/Finance";
+import JobsPublic from "./pages/JobsPublic";
+import JobPublicDetails from "./pages/JobPublicDetails";
+import JobsAdmin from "./pages/JobsAdmin";
 import { SessionProvider } from "@/auth/SessionProvider";
 import { ThemeProvider } from "@/components/ThemeProvider";
 
@@ -26,10 +29,16 @@ const App = () => (
           <BrowserRouter>
             <Routes>
               <Route path="/" element={<Index />} />
+              <Route path="/vagas" element={<JobsPublic />} />
+              <Route path="/vagas/:jobId" element={<JobPublicDetails />} />
               <Route path="/login" element={<Login />} />
               <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/dashboard/vagas" element={<JobsAdmin />} />
               <Route path="/finance" element={<Finance />} />
-              <Route path="/candidates/:candidateId" element={<CandidateDetails />} />
+              <Route
+                path="/candidates/:candidateId"
+                element={<CandidateDetails />}
+              />
               <Route path="/apply/:jobId" element={<Apply />} />
               <Route path="/client/:token" element={<ClientShortlist />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

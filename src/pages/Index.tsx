@@ -87,9 +87,7 @@ export default function Index() {
                 className="h-11 rounded-xl hr-btn-secondary"
                 asChild
               >
-                <Link to="/apply/00000000-0000-0000-0000-000000000000">
-                  Ver página de candidatura
-                </Link>
+                <Link to="/vagas">Ver vagas</Link>
               </Button>
             </div>
 

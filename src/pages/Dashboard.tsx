@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { Link, Navigate } from "react-router-dom";
+import { useMemo, useState, useEffect } from "react";
+import { Link, Navigate, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { Layout } from "@/components/Layout";
@@ -47,9 +47,15 @@ const fadeUp = {
 
 export default function Dashboard() {
   const { session, isLoading } = useSession();
+  const [searchParams] = useSearchParams();
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
   const [guestLink, setGuestLink] = useState<string | null>(null);
   const [isGeneratingLink, setIsGeneratingLink] = useState(false);
+
+  useEffect(() => {
+    const jobIdFromUrl = searchParams.get("jobId");
+    if (jobIdFromUrl && !selectedJobId) setSelectedJobId(jobIdFromUrl);
+  }, [searchParams, selectedJobId]);
 
   const tenantIdQuery = useQuery({
     queryKey: ["hr_tenant_id"],
