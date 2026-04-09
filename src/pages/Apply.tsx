@@ -204,20 +204,33 @@ export default function Apply() {
         throw new Error("Informe uma pretensão salarial válida.");
       }
 
-      const { error: submitErr } = await supabase.rpc("hr_submit_application", {
-        p_job_id: job.id,
-        p_full_name: fullName.trim(),
-        p_email: email.trim(),
-        p_resume_url: objectPath,
-        p_cover_letter: coverLetter.trim() || null,
-        p_skills: selectedSkills,
-        p_current_stage: "Triagem",
-        p_linkedin_url: linkedinUrl.trim(),
-        p_seniority_level: seniority,
-        p_salary_expectation: salary,
-        p_bio: bio.trim() || null,
-      });
+      const { data: submitData, error: submitErr } = await supabase.rpc(
+        "hr_submit_application",
+        {
+          p_job_id: job.id,
+          p_full_name: fullName.trim(),
+          p_email: email.trim(),
+          p_resume_url: objectPath,
+          p_cover_letter: coverLetter.trim() || null,
+          p_skills: selectedSkills,
+          p_current_stage: "Triagem",
+          p_linkedin_url: linkedinUrl.trim(),
+          p_seniority_level: seniority,
+          p_salary_expectation: salary,
+          p_bio: bio.trim() || null,
+        }
+      );
       if (submitErr) throw submitErr;
+
+      const row = Array.isArray(submitData) ? (submitData[0] as any) : (submitData as any);
+      const applicationId = row?.application_id ? String(row.application_id) : "";
+
+      // Fire-and-forget AI analysis (Groq). Candidate already submitted successfully.
+      if (applicationId) {
+        void supabase.functions.invoke("groq-match", {
+          body: { application_id: applicationId },
+        });
+      }
 
       setSuccess(true);
     } catch (e: any) {

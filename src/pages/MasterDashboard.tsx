@@ -1,14 +1,15 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { Crown, ShieldAlert } from "lucide-react";
+import { Crown, ShieldAlert, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/auth/SessionProvider";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Table,
   TableBody,
@@ -20,6 +21,9 @@ import {
 import { toast } from "@/hooks/use-toast";
 
 const MASTER_EMAIL = "zerofreitas2009@gmail.com";
+
+const DEFAULT_PROMPT =
+  "Aja como um Recrutador Especialista. Analise o currículo em relação à vaga e retorne um JSON com: match_percent (0-100), resumo_fit (max 250 carac.), pontos_fortes (lista de 3) e gap_tecnico (1 item).";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 10 },
@@ -34,9 +38,16 @@ type TenantRow = {
   created_at: string;
 };
 
+type HrSettingsRow = {
+  id: string;
+  ai_system_prompt: string;
+  updated_at: string;
+};
+
 export default function MasterDashboard() {
   const { session, isLoading } = useSession();
   const [savingTenantId, setSavingTenantId] = useState<string | null>(null);
+  const [savingPrompt, setSavingPrompt] = useState(false);
 
   const isMaster = (session?.user.email ?? "").toLowerCase() === MASTER_EMAIL;
 
@@ -49,6 +60,33 @@ export default function MasterDashboard() {
       return (data ?? []) as TenantRow[];
     },
   });
+
+  const settingsQuery = useQuery({
+    queryKey: ["hr_ai_settings"],
+    enabled: !!session && isMaster,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("hr_settings")
+        .select("id, ai_system_prompt, updated_at")
+        .order("updated_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return data as HrSettingsRow | null;
+    },
+  });
+
+  const [prompt, setPrompt] = useState("");
+
+  useEffect(() => {
+    if (settingsQuery.data?.ai_system_prompt) {
+      setPrompt(settingsQuery.data.ai_system_prompt);
+      return;
+    }
+    if (!settingsQuery.isFetching && settingsQuery.data == null && prompt.trim() === "") {
+      setPrompt(DEFAULT_PROMPT);
+    }
+  }, [prompt, settingsQuery.data, settingsQuery.isFetching]);
 
   const stats = useMemo(() => {
     const rows = tenantsQuery.data ?? [];
@@ -80,6 +118,43 @@ export default function MasterDashboard() {
     }
   }
 
+  async function saveAiPrompt() {
+    if (!isMaster) return;
+    const next = prompt.trim() ? prompt.trim() : DEFAULT_PROMPT;
+
+    setSavingPrompt(true);
+    try {
+      const existing = settingsQuery.data;
+      if (existing?.id) {
+        const { error } = await supabase
+          .from("hr_settings")
+          .update({ ai_system_prompt: next })
+          .eq("id", existing.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from("hr_settings")
+          .insert({ ai_system_prompt: next });
+        if (error) throw error;
+      }
+
+      toast({
+        title: "Instrução atualizada",
+        description:
+          "A próxima análise de currículo já vai usar esse novo prompt.",
+      });
+      await settingsQuery.refetch();
+    } catch (e: any) {
+      toast({
+        title: "Não foi possível salvar",
+        description: e?.message ?? String(e),
+        variant: "destructive",
+      });
+    } finally {
+      setSavingPrompt(false);
+    }
+  }
+
   return (
     <div className="relative min-h-screen overflow-hidden bg-[#020617] px-4 py-10 text-slate-100">
       <div className="pointer-events-none absolute -left-24 -top-20 h-72 w-72 rounded-full bg-[hsl(var(--primary))]/25 blur-3xl" />
@@ -101,10 +176,10 @@ export default function MasterDashboard() {
                 Dashboard Master
               </div>
               <h1 className="mt-3 text-2xl font-semibold tracking-tight">
-                Gestão de Tenants
+                Gestão Master
               </h1>
               <p className="mt-1 text-sm text-slate-300">
-                Controle de ativação do plano vitalício (active) por tenant.
+                Tenants + Comando da IA (Groq)
               </p>
             </div>
 
@@ -120,13 +195,60 @@ export default function MasterDashboard() {
               </Badge>
               <Button
                 className="h-10 rounded-xl hr-btn-primary"
-                onClick={() => tenantsQuery.refetch()}
-                disabled={tenantsQuery.isFetching}
+                onClick={() => {
+                  tenantsQuery.refetch();
+                  settingsQuery.refetch();
+                }}
+                disabled={tenantsQuery.isFetching || settingsQuery.isFetching}
               >
                 Atualizar
               </Button>
             </div>
           </div>
+
+          <Card className="rounded-[28px] p-6 hr-glass">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-slate-100 ring-1 ring-white/10">
+                  <Sparkles className="h-3.5 w-3.5" />
+                  Central de Comando da IA
+                </div>
+                <h2 className="mt-3 text-lg font-semibold tracking-tight">
+                  Instrução do Sistema IA
+                </h2>
+                <p className="mt-1 text-sm text-slate-300">
+                  As próximas análises do Groq (llama3-70b-8192) usarão esse texto.
+                </p>
+              </div>
+              <Badge className="rounded-full bg-[hsl(var(--electric-indigo))]/12 text-[hsl(var(--electric-indigo))] ring-1 ring-[hsl(var(--electric-indigo))]/25 dark:text-white">
+                Groq
+              </Badge>
+            </div>
+
+            <div className="mt-4 grid gap-3">
+              <Textarea
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+                className="min-h-[160px] rounded-2xl bg-white/5 text-slate-100 ring-1 ring-white/10 placeholder:text-slate-400"
+                placeholder={DEFAULT_PROMPT}
+              />
+
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div className="text-xs text-slate-400">
+                  {settingsQuery.data?.updated_at
+                    ? `Última atualização: ${new Date(settingsQuery.data.updated_at).toLocaleString()}`
+                    : "Ainda sem alterações manuais."}
+                </div>
+                <Button
+                  className="h-10 rounded-xl hr-btn-primary"
+                  onClick={saveAiPrompt}
+                  disabled={savingPrompt}
+                >
+                  {savingPrompt ? "Salvando…" : "Salvar instrução"}
+                </Button>
+              </div>
+            </div>
+          </Card>
 
           {tenantsQuery.error ? (
             <Card className="rounded-[28px] p-6 hr-glass">

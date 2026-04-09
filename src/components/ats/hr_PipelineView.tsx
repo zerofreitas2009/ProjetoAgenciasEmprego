@@ -1,10 +1,12 @@
 import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { hr_matchScore } from "@/lib/hr_match";
-import { Sparkles, Star, UserRound } from "lucide-react";
+import { Bot, Sparkles, Star, UserRound } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -12,6 +14,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { hr_MatchRadar as HrMatchRadar } from "@/components/ats/hr_MatchRadar";
+import { AiInsightsDialog } from "@/components/ai/AiInsightsDialog";
 import { AnimatePresence, motion } from "framer-motion";
 
 export type HrApplicationRow = {
@@ -96,6 +99,30 @@ export function hr_PipelineView({
   errorMessage,
 }: Props) {
   const [radarCandidateId, setRadarCandidateId] = useState<string | null>(null);
+  const [aiApplicationId, setAiApplicationId] = useState<string | null>(null);
+  const [aiCandidateName, setAiCandidateName] = useState<string | null>(null);
+
+  const aiScoresQuery = useQuery({
+    queryKey: ["hr_ai_scores", jobId, applications.map((a) => a.id).join(",")],
+    enabled: applications.length > 0,
+    queryFn: async () => {
+      const ids = applications.map((a) => a.id);
+      if (ids.length === 0) return new Map<string, number>();
+
+      const { data, error } = await supabase
+        .from("hr_ai_insights")
+        .select("application_id, match_percent")
+        .in("application_id", ids)
+        .limit(200);
+      if (error) throw error;
+
+      const map = new Map<string, number>();
+      for (const row of data ?? []) {
+        map.set(String((row as any).application_id), Number((row as any).match_percent));
+      }
+      return map;
+    },
+  });
 
   const { stages, grouped } = useMemo(() => {
     const map = new Map<string, HrApplicationRow[]>();
@@ -135,6 +162,18 @@ export function hr_PipelineView({
           ) : null}
         </DialogContent>
       </Dialog>
+
+      <AiInsightsDialog
+        open={!!aiApplicationId}
+        onOpenChange={(o) => {
+          if (!o) {
+            setAiApplicationId(null);
+            setAiCandidateName(null);
+          }
+        }}
+        applicationId={aiApplicationId}
+        candidateName={aiCandidateName}
+      />
 
       <Card className="rounded-[28px] p-5 hr-glass">
         <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
@@ -193,10 +232,11 @@ export function hr_PipelineView({
                     <AnimatePresence initial={false}>
                       {list.map((a) => {
                         const isShortlisted = shortlistedIds.has(a.id);
-                        const score = hr_matchScore(
+                        const fallbackScore = hr_matchScore(
                           a.candidate?.skills,
                           jobRequirements
                         );
+                        const aiScore = aiScoresQuery.data?.get(a.id) ?? null;
                         const lastTouch = a.updated_at ?? a.status_changed_at;
                         const stuckDays = daysSince(lastTouch);
 
@@ -230,9 +270,15 @@ export function hr_PipelineView({
                                   </div>
 
                                   <div className="mt-2 flex flex-wrap gap-2">
-                                    <Badge className="rounded-full bg-[hsl(var(--primary))]/10 text-[hsl(var(--primary))] ring-1 ring-[hsl(var(--primary))]/15 dark:bg-[hsl(var(--primary))]/15 dark:text-white">
-                                      Match: {score}%
-                                    </Badge>
+                                    {aiScore != null ? (
+                                      <Badge className="rounded-full bg-[hsl(var(--electric-indigo))]/12 text-[hsl(var(--electric-indigo))] ring-1 ring-[hsl(var(--electric-indigo))]/25 dark:text-white">
+                                        Groq: {aiScore}%
+                                      </Badge>
+                                    ) : (
+                                      <Badge className="rounded-full bg-[hsl(var(--primary))]/10 text-[hsl(var(--primary))] ring-1 ring-[hsl(var(--primary))]/15 dark:bg-[hsl(var(--primary))]/15 dark:text-white">
+                                        Match: {fallbackScore}%
+                                      </Badge>
+                                    )}
 
                                     <Badge
                                       className={
@@ -260,6 +306,18 @@ export function hr_PipelineView({
                               </div>
 
                               <div className="flex items-center gap-2">
+                                <Button
+                                  variant="secondary"
+                                  className="h-9 rounded-xl hr-btn-secondary px-3"
+                                  onClick={() => {
+                                    setAiApplicationId(a.id);
+                                    setAiCandidateName(a.candidate?.full_name ?? null);
+                                  }}
+                                  title="AI Insights by Groq"
+                                >
+                                  <Bot className="h-4 w-4" />
+                                </Button>
+
                                 {a.candidate?.id ? (
                                   <Button
                                     variant="secondary"
