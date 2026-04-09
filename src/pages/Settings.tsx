@@ -221,6 +221,7 @@ function SettingsContent() {
   const [tenantLogo, setTenantLogo] = useState<string | null>(null);
   const tenantLogoInputRef = useRef<HTMLInputElement | null>(null);
 
+  const [inviteFullName, setInviteFullName] = useState("");
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState<"RECRUITER" | "ADMIN">("RECRUITER");
 
@@ -332,7 +333,18 @@ function SettingsContent() {
     const tenantName = tenantQuery.data?.name;
     if (!tenantId || !tenantName) return;
 
+    const fullName = inviteFullName.trim();
     const email = inviteEmail.trim().toLowerCase();
+
+    if (fullName.length < 3) {
+      toast({
+        title: "Nome obrigatório",
+        description: "Informe o nome completo do recrutador para o convite.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (!email.includes("@")) {
       toast({
         title: "E-mail inválido",
@@ -346,6 +358,7 @@ function SettingsContent() {
       .from("hr_team_invites")
       .insert({
         tenant_id: tenantId,
+        full_name: fullName,
         email,
         role: inviteRole,
         invited_by: session?.user.id ?? null,
@@ -402,6 +415,7 @@ function SettingsContent() {
       });
     }
 
+    setInviteFullName("");
     setInviteEmail("");
     await queryClient.invalidateQueries({ queryKey: ["hr_team_invites"] });
   }
@@ -617,12 +631,24 @@ function SettingsContent() {
 
                 <div className="mt-6 grid gap-4">
                   <div className="space-y-2">
+                    <Label>Nome completo</Label>
+                    <Input
+                      value={inviteFullName}
+                      onChange={(e) => setInviteFullName(e.target.value)}
+                      placeholder="Ex.: Marina Carvalho"
+                      className="h-11 rounded-2xl"
+                      autoComplete="name"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
                     <Label>E-mail</Label>
                     <Input
                       value={inviteEmail}
                       onChange={(e) => setInviteEmail(e.target.value)}
                       placeholder="pessoa@empresa.com"
                       className="h-11 rounded-2xl"
+                      autoComplete="email"
                     />
                   </div>
 
@@ -646,7 +672,11 @@ function SettingsContent() {
                     type="button"
                     className="h-11 rounded-2xl hr-btn-primary"
                     onClick={() => void createInvite()}
-                    disabled={inviteEmail.trim().length === 0 || invitesQuery.isLoading}
+                    disabled={
+                      inviteEmail.trim().length === 0 ||
+                      inviteFullName.trim().length < 3 ||
+                      invitesQuery.isLoading
+                    }
                   >
                     Enviar convite
                   </Button>

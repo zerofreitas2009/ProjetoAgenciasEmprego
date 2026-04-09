@@ -1,4 +1,4 @@
-import { type FormEvent, useMemo, useState } from "react";
+import { type FormEvent, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
@@ -31,11 +31,23 @@ const labelClass = "text-slate-700 dark:text-slate-200";
 const iconClass =
   "pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 dark:text-slate-300";
 
+type InvitePublic = {
+  email: string | null;
+  full_name: string | null;
+  tenant_name: string | null;
+  role: string | null;
+};
+
 export default function Signup() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const inviteToken = (params.get("invite") ?? "").trim();
   const hasInvite = inviteToken.length > 0;
+
+  const [inviteStatus, setInviteStatus] = useState<
+    "idle" | "loading" | "ready" | "invalid"
+  >(hasInvite ? "loading" : "idle");
+  const [inviteTenantName, setInviteTenantName] = useState<string | null>(null);
 
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -44,14 +56,69 @@ export default function Signup() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [awaitingConfirmation, setAwaitingConfirmation] = useState(false);
 
+  useEffect(() => {
+    if (!hasInvite) return;
+
+    let cancelled = false;
+
+    (async () => {
+      setInviteStatus("loading");
+
+      const { data, error } = await supabase.rpc("hr_get_team_invite_public", {
+        p_token: inviteToken,
+      });
+
+      if (cancelled) return;
+
+      if (error) {
+        setInviteStatus("invalid");
+        toast({
+          title: "Convite inválido",
+          description: "Não foi possível validar este convite. Peça um novo link.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const row = (Array.isArray(data) ? data[0] : null) as InvitePublic | null;
+      if (!row?.email) {
+        setInviteStatus("invalid");
+        toast({
+          title: "Convite inválido ou já utilizado",
+          description: "Peça para o admin reenviar o convite.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setEmail(String(row.email));
+      setFullName(String(row.full_name ?? ""));
+      setInviteTenantName(row.tenant_name ?? null);
+      setInviteStatus("ready");
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [hasInvite, inviteToken]);
+
   const isValid = useMemo(() => {
+    if (hasInvite) {
+      return (
+        inviteStatus === "ready" &&
+        fullName.trim().length >= 3 &&
+        email.trim().includes("@") &&
+        password.length >= 8
+      );
+    }
+
     return (
       fullName.trim().length >= 3 &&
       email.trim().includes("@") &&
       password.length >= 8 &&
-      (hasInvite ? true : tenantName.trim().length >= 2)
+      tenantName.trim().length >= 2
     );
-  }, [email, fullName, hasInvite, password.length, tenantName]);
+  }, [email, fullName, hasInvite, inviteStatus, password.length, tenantName]);
 
   async function resendConfirmation(targetEmail: string) {
     const { error } = await supabase.auth.resend({
@@ -202,6 +269,8 @@ export default function Signup() {
     }
   }
 
+  const lockInviteFields = hasInvite && inviteStatus === "ready";
+
   return (
     <div className="relative min-h-screen overflow-hidden bg-[#020617] px-4 py-10 text-slate-100">
       {/* soft blobs (no gradients) */}
@@ -235,7 +304,7 @@ export default function Signup() {
           </h1>
           <p className="mx-auto mt-2 max-w-md text-pretty text-sm leading-relaxed text-slate-300">
             {hasInvite
-              ? "Complete seu cadastro para entrar no tenant que te convidou."
+              ? `Complete seu cadastro para entrar em ${inviteTenantName ?? "seu tenant"}.`
               : "Cadastro self-service com isolamento por tenant. Você entra e o sistema já nasce com a sua marca."}
           </p>
         </motion.div>
@@ -260,6 +329,7 @@ export default function Signup() {
                       placeholder="Ex.: Marina Carvalho"
                       className={inputClass}
                       autoComplete="name"
+                      disabled={lockInviteFields || inviteStatus === "loading"}
                     />
                   </div>
                 </div>
@@ -293,6 +363,7 @@ export default function Signup() {
                     placeholder="voce@empresa.com"
                     className={inputClass}
                     autoComplete="email"
+                    disabled={lockInviteFields || inviteStatus === "loading"}
                   />
                 </div>
               </div>
@@ -308,9 +379,16 @@ export default function Signup() {
                     type="password"
                     className={inputClass}
                     autoComplete="new-password"
+                    disabled={hasInvite && inviteStatus !== "ready"}
                   />
                 </div>
               </div>
+
+              {hasInvite && inviteStatus === "invalid" ? (
+                <div className="rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-100">
+                  Este convite é inválido ou já foi utilizado. Solicite um novo link ao administrador.
+                </div>
+              ) : null}
 
               <div className="flex flex-col gap-3 pt-2 sm:flex-row sm:items-center sm:justify-between">
                 <Button
@@ -318,7 +396,11 @@ export default function Signup() {
                   disabled={!isValid || isSubmitting}
                   className="h-11 rounded-2xl hr-btn-primary disabled:opacity-60"
                 >
-                  {isSubmitting ? "Criando…" : hasInvite ? "Aceitar convite" : "Criar minha agência"}
+                  {isSubmitting
+                    ? "Criando…"
+                    : hasInvite
+                      ? "Aceitar convite"
+                      : "Criar minha agência"}
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
 
