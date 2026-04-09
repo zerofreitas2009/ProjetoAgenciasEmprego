@@ -9,6 +9,15 @@ type SessionContextValue = {
 
 const SessionContext = createContext<SessionContextValue | undefined>(undefined);
 
+async function acceptPendingInviteIfAny(session: Session | null) {
+  if (!session) return;
+  const { error } = await supabase.rpc("hr_accept_my_pending_invite");
+  // If there is no invite, the function returns false (no error). Any error here is non-fatal.
+  if (error) {
+    // Intentionally ignore to avoid breaking auth flows.
+  }
+}
+
 export function SessionProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -16,15 +25,18 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let mounted = true;
 
-    supabase.auth.getSession().then(({ data }) => {
+    supabase.auth.getSession().then(async ({ data }) => {
       if (!mounted) return;
-      setSession(data.session ?? null);
+      const next = data.session ?? null;
+      setSession(next);
       setIsLoading(false);
+      await acceptPendingInviteIfAny(next);
     });
 
-    const { data } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+    const { data } = supabase.auth.onAuthStateChange(async (_event, nextSession) => {
       setSession(nextSession ?? null);
       setIsLoading(false);
+      await acceptPendingInviteIfAny(nextSession ?? null);
     });
 
     return () => {
