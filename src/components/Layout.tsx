@@ -38,7 +38,7 @@ const NAV = [
   },
   {
     to: "/finance",
-    label: "Finance",
+    label: "Financeiro",
     icon: Wallet,
     adminOnly: true,
   },
@@ -78,7 +78,8 @@ function NavLinks({
             <Icon
               className={cn(
                 "h-4 w-4 text-slate-500 transition group-hover:text-slate-900 dark:text-slate-300 dark:group-hover:text-white",
-                active && "text-[hsl(var(--primary))] dark:text-[hsl(var(--primary))]"
+                active &&
+                  "text-[hsl(var(--primary))] dark:text-[hsl(var(--primary))]"
               )}
             />
             {collapsed ? null : <span>{item.label}</span>}
@@ -127,7 +128,7 @@ export function Layout({ children }: PropsWithChildren) {
       ? "Dashboard"
       : location.pathname.startsWith("/finance")
         ? "Financeiro"
-        : "Workspace";
+        : "Painel";
 
   return (
     <div className="min-h-screen bg-white text-slate-900 dark:bg-[#020617] dark:text-slate-100">
@@ -186,7 +187,10 @@ export function Layout({ children }: PropsWithChildren) {
               <div className="flex items-center gap-2">
                 <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
                   <SheetTrigger asChild>
-                    <Button variant="secondary" className="h-10 rounded-xl hr-btn-secondary md:hidden">
+                    <Button
+                      variant="secondary"
+                      className="h-10 rounded-xl hr-btn-secondary md:hidden"
+                    >
                       <Menu className="h-4 w-4" />
                     </Button>
                   </SheetTrigger>

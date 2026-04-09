@@ -291,7 +291,7 @@ export default function Dashboard() {
               )}
             </div>
             <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-              hr_jobs com status OPEN
+              Total de vagas abertas no momento.
             </p>
           </Card>
 
@@ -308,7 +308,7 @@ export default function Dashboard() {
                 </div>
               ) : (funnelQuery.data ?? []).length === 0 ? (
                 <p className="text-sm text-slate-600 dark:text-slate-300">
-                  Sem aplicações ainda.
+                  Sem candidaturas ainda.
                 </p>
               ) : (
                 (funnelQuery.data ?? []).slice(0, 4).map((x) => (
@@ -330,7 +330,7 @@ export default function Dashboard() {
 
           <Card className="rounded-3xl p-5 hr-glass">
             <div className="text-xs font-semibold text-slate-600 dark:text-slate-300">
-              Time-to-hire
+              Tempo médio de contratação
             </div>
             <div className="mt-2 text-3xl font-semibold tracking-tight">
               {timeToHireQuery.isFetching ? (
@@ -342,7 +342,7 @@ export default function Dashboard() {
               )}
             </div>
             <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-              Média até status HIRED
+              Média de dias até a contratação.
             </p>
           </Card>
         </div>
@@ -426,13 +426,17 @@ export default function Dashboard() {
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                       <div>
                         <div className="text-xs font-semibold text-slate-600 dark:text-slate-300">
-                          Link compartilhável (cliente)
+                          Link para o cliente
                         </div>
                         <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                          Mostra apenas a shortlist e permite feedback.
+                          Compartilhe a shortlist e receba feedbacks em 1 clique.
                         </div>
                       </div>
-                      <Button className="h-11 rounded-xl hr-btn-primary" onClick={generateGuestLink} disabled={isGeneratingLink}>
+                      <Button
+                        className="h-11 rounded-xl hr-btn-primary"
+                        onClick={generateGuestLink}
+                        disabled={isGeneratingLink}
+                      >
                         <LinkIcon className="mr-2 h-4 w-4" />
                         {isGeneratingLink ? "Gerando…" : "Gerar & copiar"}
                       </Button>
@@ -443,7 +447,11 @@ export default function Dashboard() {
                         <div className="min-w-0 break-all text-xs text-slate-700 dark:text-slate-200">
                           {guestLink}
                         </div>
-                        <Button variant="secondary" className="h-9 rounded-xl hr-btn-secondary" onClick={() => navigator.clipboard.writeText(guestLink)}>
+                        <Button
+                          variant="secondary"
+                          className="h-9 rounded-xl hr-btn-secondary"
+                          onClick={() => navigator.clipboard.writeText(guestLink)}
+                        >
                           <Copy className="mr-2 h-4 w-4" />
                           Copiar
                         </Button>
@@ -483,7 +491,7 @@ export default function Dashboard() {
                 <div>
                   <h2 className="text-base font-semibold">Candidatos</h2>
                   <p className="text-sm text-slate-600 dark:text-slate-300">
-                    Últimos 50 candidatos do seu tenant.
+                    Últimos 50 candidatos cadastrados.
                   </p>
                 </div>
                 <div className="text-sm text-slate-600 dark:text-slate-300">

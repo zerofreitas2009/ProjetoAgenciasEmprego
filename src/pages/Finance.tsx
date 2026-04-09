@@ -123,13 +123,13 @@ export default function Finance() {
     <Layout>
       {roleQuery.data && roleQuery.data !== "ADMIN" ? (
         <Card className="rounded-[28px] p-6 hr-glass">
-          <h1 className="text-2xl font-semibold tracking-tight">Acesso restrito</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Financeiro</h1>
           <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
-            A página financeira está disponível apenas para usuários com role
-            <span className="ml-2 rounded-full bg-white/60 px-2 py-0.5 font-mono text-xs text-slate-700 ring-1 ring-slate-200 dark:bg-white/10 dark:text-slate-200 dark:ring-white/10">
-              ADMIN
+            Esta página está disponível apenas para contas com permissão de
+            administrador.
+            <span className="ml-2 rounded-full bg-white/60 px-2 py-0.5 text-xs font-semibold text-slate-700 ring-1 ring-slate-200 dark:bg-white/10 dark:text-slate-200 dark:ring-white/10">
+              Administrador
             </span>
-            .
           </p>
         </Card>
       ) : (
@@ -147,7 +147,7 @@ export default function Finance() {
                 )}
               </div>
               <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                Soma das fees não canceladas
+                Soma das contratações não canceladas
               </p>
             </Card>
 
@@ -163,7 +163,7 @@ export default function Finance() {
                 )}
               </div>
               <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                Fees com status PAID
+                Contratações marcadas como pagas
               </p>
             </Card>
           </div>
@@ -171,7 +171,7 @@ export default function Finance() {
           <Card className="rounded-[28px] p-5 hr-glass">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-base font-semibold">Placements do mês</h2>
+                <h2 className="text-base font-semibold">Contratações do mês</h2>
                 <p className="text-sm text-slate-600 dark:text-slate-300">
                   {monthRange.start.toLocaleDateString()} – {monthRange.end.toLocaleDateString()}
                 </p>
@@ -179,7 +179,7 @@ export default function Finance() {
               <div className="text-sm text-slate-600 dark:text-slate-300">
                 {placementsQuery.isFetching
                   ? "Carregando…"
-                  : `${(placementsQuery.data ?? []).length} registro(s)`}
+                  : `${(placementsQuery.data ?? []).length} item(ns)`}
               </div>
             </div>
 
@@ -204,7 +204,7 @@ export default function Finance() {
                       Candidato
                     </TableHead>
                     <TableHead className="text-right text-slate-600 dark:text-slate-300">
-                      Fee
+                      Valor
                     </TableHead>
                     <TableHead className="text-slate-600 dark:text-slate-300">
                       Status
@@ -224,8 +224,7 @@ export default function Finance() {
                     <TableRow>
                       <TableCell colSpan={5} className="py-10 text-center">
                         <p className="text-sm text-slate-600 dark:text-slate-300">
-                          Quando uma aplicação for marcada como HIRED, um placement
-                          será criado automaticamente.
+                          Nenhum registro ainda.
                         </p>
                       </TableCell>
                     </TableRow>
@@ -262,16 +261,11 @@ export default function Finance() {
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="PENDING">PENDING</SelectItem>
-                                <SelectItem value="PAID">PAID</SelectItem>
-                                <SelectItem value="CANCELLED">CANCELLED</SelectItem>
+                                <SelectItem value="PENDING">Pendente</SelectItem>
+                                <SelectItem value="PAID">Pago</SelectItem>
+                                <SelectItem value="CANCELLED">Cancelado</SelectItem>
                               </SelectContent>
                             </Select>
-                            <div className="mt-2">
-                              <Badge className="rounded-full bg-white/60 text-slate-700 ring-1 ring-slate-200 dark:bg-white/10 dark:text-slate-200 dark:ring-white/10">
-                                {p.fee_percentage}% de {formatBRL(p.salary_offered ?? 0)}
-                              </Badge>
-                            </div>
                           </TableCell>
                         </TableRow>
                       );

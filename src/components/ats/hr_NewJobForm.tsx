@@ -1,7 +1,9 @@
 import { useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Card } from "@/components/ui/card";
+import { supabase } from "@/integrations/supabase/client";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -11,8 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { supabase } from "@/integrations/supabase/client";
-import { Badge } from "@/components/ui/badge";
+import { BriefcaseBusiness, Sparkles } from "lucide-react";
 
 type Company = {
   id: string;
@@ -31,15 +32,15 @@ export function hr_NewJobForm({ companies, onCreated }: Props) {
   const [title, setTitle] = useState("");
   const [salaryRange, setSalaryRange] = useState("");
   const [description, setDescription] = useState("");
-  const [requirementsCsv, setRequirementsCsv] = useState("");
+  const [skillsText, setSkillsText] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  const normalizedRequirements = useMemo(() => {
-    return requirementsCsv
-      .split(",")
+  const skills = useMemo(() => {
+    return skillsText
+      .split(/,|\n/)
       .map((s) => s.trim())
       .filter(Boolean);
-  }, [requirementsCsv]);
+  }, [skillsText]);
 
   async function createJob() {
     setSubmitting(true);
@@ -55,7 +56,7 @@ export function hr_NewJobForm({ companies, onCreated }: Props) {
         title,
         salary_range: salaryRange || null,
         description: description || null,
-        requirements: normalizedRequirements,
+        requirements: skills,
         status: "OPEN",
       });
 
@@ -65,7 +66,7 @@ export function hr_NewJobForm({ companies, onCreated }: Props) {
       setTitle("");
       setSalaryRange("");
       setDescription("");
-      setRequirementsCsv("");
+      setSkillsText("");
 
       queryClient.invalidateQueries({ queryKey: ["hr_jobs"] });
       onCreated();
@@ -79,24 +80,18 @@ export function hr_NewJobForm({ companies, onCreated }: Props) {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <div className="inline-flex items-center gap-2 rounded-full bg-[hsl(var(--primary))]/10 px-3 py-1 text-xs font-semibold text-[hsl(var(--primary))] ring-1 ring-[hsl(var(--primary))]/15 dark:bg-[hsl(var(--primary))]/15 dark:text-white">
-            Criar vaga
-            <Badge className="rounded-full bg-[#FB923C]/10 text-[#FB923C] ring-1 ring-[#FB923C]/15 dark:bg-[#FB923C]/15">
-              rápido
-            </Badge>
+            <BriefcaseBusiness className="h-3.5 w-3.5" />
+            Nova vaga
           </div>
-          <h2 className="mt-3 text-base font-semibold">Nova vaga</h2>
-          <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-            Requirements viram o "Raio‑X" do Matchmaker automaticamente.
+          <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+            Defina a vaga e acompanhe os candidatos no pipeline.
           </p>
         </div>
 
-        <Button
-          className="h-11 rounded-xl hr-btn-primary"
-          disabled={submitting || !companyId || !title}
-          onClick={createJob}
-        >
-          {submitting ? "Criando…" : "Criar vaga"}
-        </Button>
+        <Badge className="rounded-full bg-[#FB923C]/10 text-[#FB923C] ring-1 ring-[#FB923C]/15 dark:bg-[#FB923C]/15">
+          <Sparkles className="mr-1.5 h-3.5 w-3.5" />
+          Match automático
+        </Badge>
       </div>
 
       <div className="mt-5 grid gap-3 sm:grid-cols-2">
@@ -120,61 +115,76 @@ export function hr_NewJobForm({ companies, onCreated }: Props) {
 
         <div>
           <div className="mb-2 text-xs font-semibold text-slate-600 dark:text-slate-300">
-            Título
+            Título da vaga
           </div>
           <Input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             className="h-11 rounded-2xl bg-white/70 ring-1 ring-slate-200 backdrop-blur-md dark:bg-white/5 dark:ring-white/10"
-            placeholder="Ex: Senior Frontend"
+            placeholder="Ex.: Analista de Suporte"
           />
         </div>
 
         <div>
           <div className="mb-2 text-xs font-semibold text-slate-600 dark:text-slate-300">
-            Faixa salarial
+            Faixa salarial (opcional)
           </div>
           <Input
             value={salaryRange}
             onChange={(e) => setSalaryRange(e.target.value)}
             className="h-11 rounded-2xl bg-white/70 ring-1 ring-slate-200 backdrop-blur-md dark:bg-white/5 dark:ring-white/10"
-            placeholder="Ex: R$ 18k – 25k"
+            placeholder="Ex.: R$ 6.000 – R$ 8.500"
           />
         </div>
 
-        <div>
+        <div className="sm:col-span-2">
           <div className="mb-2 text-xs font-semibold text-slate-600 dark:text-slate-300">
-            Requirements (CSV)
+            Competências-chave
           </div>
-          <Input
-            value={requirementsCsv}
-            onChange={(e) => setRequirementsCsv(e.target.value)}
-            className="h-11 rounded-2xl bg-white/70 ring-1 ring-slate-200 backdrop-blur-md dark:bg-white/5 dark:ring-white/10"
-            placeholder="Ex: React, TypeScript, Supabase, UX, Testing"
+          <Textarea
+            value={skillsText}
+            onChange={(e) => setSkillsText(e.target.value)}
+            className="min-h-[90px] rounded-2xl bg-white/70 ring-1 ring-slate-200 backdrop-blur-md dark:bg-white/5 dark:ring-white/10"
+            placeholder="Separe por vírgulas. Ex.: React, Atendimento, SQL"
           />
-          <div className="mt-2 flex flex-wrap gap-2">
-            {normalizedRequirements.slice(0, 6).map((r) => (
-              <Badge
-                key={r}
-                className="rounded-full bg-white/60 text-slate-700 ring-1 ring-slate-200 dark:bg-white/10 dark:text-slate-200 dark:ring-white/10"
-              >
-                {r}
-              </Badge>
-            ))}
-          </div>
+          {skills.length ? (
+            <div className="mt-2 flex flex-wrap gap-2">
+              {skills.slice(0, 10).map((s) => (
+                <Badge
+                  key={s}
+                  className="rounded-full bg-white/60 text-slate-700 ring-1 ring-slate-200 dark:bg-white/10 dark:text-slate-200 dark:ring-white/10"
+                >
+                  {s}
+                </Badge>
+              ))}
+            </div>
+          ) : null}
         </div>
       </div>
 
       <div className="mt-4">
         <div className="mb-2 text-xs font-semibold text-slate-600 dark:text-slate-300">
-          Descrição
+          Descrição (opcional)
         </div>
         <Textarea
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           className="min-h-[110px] rounded-2xl bg-white/70 ring-1 ring-slate-200 backdrop-blur-md dark:bg-white/5 dark:ring-white/10"
-          placeholder="Contexto, responsabilidades, stack, etc."
+          placeholder="Contexto, responsabilidades, perfil…"
         />
+      </div>
+
+      <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div className="text-xs text-slate-500 dark:text-slate-400">
+          Você pode ajustar a vaga a qualquer momento.
+        </div>
+        <Button
+          className="h-11 rounded-xl hr-btn-primary"
+          disabled={submitting || !companyId || !title.trim()}
+          onClick={createJob}
+        >
+          {submitting ? "Salvando…" : "Criar vaga"}
+        </Button>
       </div>
     </Card>
   );

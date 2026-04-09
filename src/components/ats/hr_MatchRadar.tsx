@@ -1,93 +1,53 @@
 import { useMemo } from "react";
+import { Radar, RadarChart, PolarGrid, PolarAngleAxis, ResponsiveContainer } from "recharts";
 import { useQuery } from "@tanstack/react-query";
-import { useTheme } from "next-themes";
-import {
-  PolarAngleAxis,
-  PolarGrid,
-  PolarRadiusAxis,
-  Radar,
-  RadarChart,
-  ResponsiveContainer,
-  Tooltip,
-} from "recharts";
 import { supabase } from "@/integrations/supabase/client";
+import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 
-type Props = {
-  jobId: string;
-  candidateId: string;
-};
-
-type RadarDatum = {
-  skill: string;
-  required: number;
-  candidate: number;
-};
-
-function clamp01to100(n: number) {
-  if (!Number.isFinite(n)) return 0;
-  return Math.max(0, Math.min(100, n));
-}
-
-function normalizeRequirements(input: unknown): string[] {
-  if (!Array.isArray(input)) return [];
-
-  const out: string[] = [];
-  for (const item of input) {
-    if (typeof item === "string") out.push(item);
-    else if (item && typeof item === "object") {
-      const anyItem = item as any;
-      const name = anyItem.name ?? anyItem.skill ?? anyItem.title;
-      if (typeof name === "string" && name.trim()) out.push(name.trim());
-    }
+function parseRequirements(raw: unknown): string[] {
+  if (Array.isArray(raw)) return raw.filter((x): x is string => typeof x === "string");
+  if (typeof raw === "string") {
+    return raw
+      .split(/,|\n/)
+      .map((s) => s.trim())
+      .filter(Boolean);
   }
-
-  return Array.from(new Set(out.map((s) => s.trim()).filter(Boolean)));
+  return [];
 }
 
 function candidateSkillLevel(skills: unknown, targetSkill: string): number {
-  const t = targetSkill.trim().toLowerCase();
-  if (!t) return 0;
-
   if (!Array.isArray(skills)) return 0;
 
   for (const raw of skills) {
     if (typeof raw === "string") {
-      if (raw.trim().toLowerCase() === t) return 70;
-      continue;
+      if (raw.toLowerCase() === targetSkill.toLowerCase()) return 80;
     }
 
     if (raw && typeof raw === "object") {
-      const anyRaw = raw as any;
-      const name = (anyRaw.name ?? anyRaw.skill ?? anyRaw.title ?? "") as string;
-      if (typeof name !== "string") continue;
-      if (name.trim().toLowerCase() !== t) continue;
-
-      const level = anyRaw.level ?? anyRaw.score ?? anyRaw.value;
-      if (typeof level === "number") return clamp01to100(level);
-
-      const proficiency = anyRaw.proficiency;
-      if (typeof proficiency === "number") {
-        if (proficiency >= 0 && proficiency <= 5)
-          return clamp01to100(proficiency * 20);
-        return clamp01to100(proficiency);
-      }
-
-      return 70;
+      const obj = raw as any;
+      const name = typeof obj.name === "string" ? obj.name : "";
+      if (name.toLowerCase() !== targetSkill.toLowerCase()) continue;
+      const level = typeof obj.level === "number" ? obj.level : 0;
+      return Math.max(0, Math.min(100, level));
     }
   }
 
   return 0;
 }
 
-export function hr_MatchRadar({ jobId, candidateId }: Props) {
-  const { theme, resolvedTheme } = useTheme();
-  const currentTheme = theme === "system" ? resolvedTheme : theme;
-
+export function hr_MatchRadar({
+  jobId,
+  candidateId,
+  className,
+}: {
+  jobId: string;
+  candidateId: string;
+  className?: string;
+}) {
   const jobQuery = useQuery({
     queryKey: ["hr_job_requirements", jobId],
-    enabled: !!jobId,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("hr_jobs")
@@ -101,7 +61,6 @@ export function hr_MatchRadar({ jobId, candidateId }: Props) {
 
   const candidateQuery = useQuery({
     queryKey: ["hr_candidate_skills", candidateId],
-    enabled: !!candidateId,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("hr_candidates")
@@ -113,130 +72,108 @@ export function hr_MatchRadar({ jobId, candidateId }: Props) {
     },
   });
 
-  const chartData = useMemo((): RadarDatum[] => {
-    const req = normalizeRequirements(jobQuery.data?.requirements).slice(0, 5);
+  const chartData = useMemo(() => {
+    const req = parseRequirements(jobQuery.data?.requirements);
+    const top = req.slice(0, 5);
     const skills = candidateQuery.data?.skills;
 
-    return req.map((skill) => ({
+    return top.map((skill) => ({
       skill,
-      required: 100,
+      target: 100,
       candidate: candidateSkillLevel(skills, skill),
     }));
   }, [jobQuery.data?.requirements, candidateQuery.data?.skills]);
 
-  const colors = useMemo(() => {
-    if (currentTheme === "dark") {
-      return {
-        axis: "rgba(226,232,240,0.86)",
-        grid: "rgba(255,255,255,0.10)",
-        fill: "url(#neonFill)",
-        stroke: "url(#neonStroke)",
-      };
-    }
-
-    return {
-      axis: "rgba(30,41,59,0.75)",
-      grid: "rgba(15,23,42,0.08)",
-      fill: "rgba(29,78,216,0.18)",
-      stroke: "rgba(29,78,216,0.90)",
-    };
-  }, [currentTheme]);
+  const loading = jobQuery.isFetching || candidateQuery.isFetching;
 
   return (
-    <Card className="rounded-[28px] p-5 hr-glass">
-      <div className="flex items-end justify-between gap-3">
+    <Card
+      className={cn(
+        "rounded-[28px] p-5 hr-glass",
+        "ring-1 ring-slate-200/70 dark:ring-white/10",
+        className
+      )}
+    >
+      <div className="flex items-start justify-between gap-3">
         <div>
           <div className="text-xs font-semibold text-slate-600 dark:text-slate-300">
-            IA Matchmaker • Raio-X
+            Match • Raio-X
           </div>
-          <h3 className="mt-2 text-base font-semibold">
-            {jobQuery.isFetching ? (
-              <Skeleton className="h-5 w-44 rounded-xl" />
-            ) : (
-              jobQuery.data?.title ?? "Vaga"
-            )}
-          </h3>
           <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-            {candidateQuery.isFetching ? (
-              <span className="inline-block">
-                <Skeleton className="h-4 w-40 rounded-xl" />
-              </span>
-            ) : (
-              <>Candidato: {candidateQuery.data?.full_name ?? "—"}</>
-            )}
+            Comparativo rápido entre as principais competências da vaga e o perfil
+            do candidato.
           </p>
         </div>
-
         <div className="rounded-full bg-white/60 px-3 py-1 text-xs font-semibold text-slate-700 ring-1 ring-slate-200 dark:bg-white/10 dark:text-slate-200 dark:ring-white/10">
-          5 skills
+          5 competências
         </div>
       </div>
 
-      <div className="mt-4 h-[280px]">
-        {jobQuery.isFetching || candidateQuery.isFetching ? (
-          <Skeleton className="h-full w-full rounded-3xl" />
+      <div className="mt-4 h-[240px]">
+        {loading ? (
+          <div className="flex h-full items-center justify-center rounded-3xl bg-white/60 text-sm text-slate-600 ring-1 ring-slate-200 dark:bg-white/5 dark:text-slate-300 dark:ring-white/10">
+            <Skeleton className="h-6 w-40 rounded-xl" />
+          </div>
         ) : chartData.length === 0 ? (
           <div className="flex h-full items-center justify-center rounded-3xl bg-white/60 text-sm text-slate-600 ring-1 ring-slate-200 dark:bg-white/5 dark:text-slate-300 dark:ring-white/10">
-            A vaga ainda não tem requirements.
+            Sem dados suficientes.
           </div>
         ) : (
           <ResponsiveContainer width="100%" height="100%">
-            <RadarChart data={chartData} outerRadius={95}>
-              <defs>
-                <linearGradient id="neonFill" x1="0" y1="0" x2="1" y2="1">
-                  <stop offset="0%" stopColor="#22d3ee" stopOpacity={0.22} />
-                  <stop offset="100%" stopColor="#7C3AED" stopOpacity={0.22} />
-                </linearGradient>
-                <linearGradient id="neonStroke" x1="0" y1="0" x2="1" y2="1">
-                  <stop offset="0%" stopColor="#22d3ee" stopOpacity={0.95} />
-                  <stop offset="100%" stopColor="#7C3AED" stopOpacity={0.95} />
-                </linearGradient>
-              </defs>
-
-              <PolarGrid stroke={colors.grid} />
+            <RadarChart data={chartData} outerRadius={88}>
+              <PolarGrid
+                stroke="#94A3B8"
+                strokeOpacity={0.25}
+                radialLines={false}
+              />
               <PolarAngleAxis
                 dataKey="skill"
-                tick={{ fill: colors.axis, fontSize: 11 }}
+                tick={{ fill: "#64748B", fontSize: 11, fontWeight: 600 }}
               />
-              <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
 
+              <Radar
+                name="Meta"
+                dataKey="target"
+                stroke="#0EA5E9"
+                fill="#0EA5E9"
+                fillOpacity={0.08}
+                strokeOpacity={0.7}
+              />
               <Radar
                 name="Candidato"
                 dataKey="candidate"
-                stroke={colors.stroke}
-                fill={colors.fill}
-                fillOpacity={1}
-                strokeWidth={2}
-                dot={{ r: 2, fill: "rgba(255,255,255,0.85)", stroke: "none" }}
-              />
-
-              <Tooltip
-                contentStyle={{
-                  borderRadius: 14,
-                  border: "1px solid rgba(0,0,0,0.08)",
-                  boxShadow: "0 12px 32px rgba(15,23,42,0.10)",
-                }}
-                formatter={(v: any) => [`${v}%`, "Nível"]}
+                stroke="#7C3AED"
+                fill="#7C3AED"
+                fillOpacity={0.14}
+                strokeOpacity={0.95}
               />
             </RadarChart>
           </ResponsiveContainer>
         )}
       </div>
 
-      <div className="mt-4 grid gap-2 sm:grid-cols-2">
-        {chartData.map((d) => (
-          <div
-            key={d.skill}
-            className="flex items-center justify-between rounded-2xl bg-white/60 px-3 py-2 text-sm ring-1 ring-slate-200 dark:bg-white/5 dark:ring-white/10"
-          >
-            <span className="truncate text-slate-700 dark:text-slate-200">
-              {d.skill}
-            </span>
-            <span className="ml-3 font-semibold text-slate-900 dark:text-white">
-              {d.candidate}%
-            </span>
+      <div className="mt-4 grid gap-2">
+        {loading ? (
+          <div className="space-y-2">
+            <Skeleton className="h-9 w-full rounded-2xl" />
+            <Skeleton className="h-9 w-full rounded-2xl" />
+            <Skeleton className="h-9 w-full rounded-2xl" />
           </div>
-        ))}
+        ) : (
+          chartData.map((row) => (
+            <div
+              key={row.skill}
+              className="flex items-center justify-between rounded-2xl bg-white/60 px-3 py-2 text-sm ring-1 ring-slate-200 dark:bg-white/5 dark:ring-white/10"
+            >
+              <span className="truncate text-slate-700 dark:text-slate-200">
+                {row.skill}
+              </span>
+              <span className="ml-3 font-semibold text-slate-900 dark:text-white">
+                {Math.round(row.candidate)}%
+              </span>
+            </div>
+          ))
+        )}
       </div>
     </Card>
   );

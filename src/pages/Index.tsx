@@ -41,7 +41,7 @@ export default function Index() {
             </Button>
             <Button className="h-10 rounded-xl hr-btn-primary" asChild>
               <Link to="/dashboard">
-                Abrir workspace <ArrowRight className="ml-2 h-4 w-4" />
+                Acessar painel <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
             </Button>
           </div>
@@ -57,13 +57,13 @@ export default function Index() {
           >
             <div className="flex flex-wrap items-center gap-2">
               <Badge className="rounded-full bg-[hsl(var(--primary))]/10 text-[hsl(var(--primary))] ring-1 ring-[hsl(var(--primary))]/15 dark:bg-[hsl(var(--primary))]/15 dark:text-white">
-                Electric Fusion
+                Para agências de RH
               </Badge>
               <Badge className="rounded-full bg-[#10B981]/10 text-[#10B981] ring-1 ring-[#10B981]/15 dark:bg-[#10B981]/15">
-                Multi-tenant
+                Gargalos em tempo real
               </Badge>
-              <Badge className="rounded-full bg-slate-100 text-slate-700 ring-1 ring-slate-200 dark:bg-white/10 dark:text-slate-200 dark:ring-white/10">
-                ATS + Portal do Cliente
+              <Badge className="rounded-full bg-[#FB923C]/10 text-[#FB923C] ring-1 ring-[#FB923C]/15 dark:bg-[#FB923C]/15">
+                Portal do cliente
               </Badge>
             </div>
 
@@ -160,11 +160,11 @@ export default function Index() {
                 <div>
                   <div className="text-sm font-semibold">Visão geral</div>
                   <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                    KPI + pipeline + cliente + financeiro.
+                    Indicadores • Pipeline • Portal do Cliente • Financeiro
                   </div>
                 </div>
                 <Badge className="rounded-full bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))] shadow-lg shadow-violet-500/20">
-                  High-End
+                  Tudo em um só lugar
                 </Badge>
               </div>
 
@@ -198,11 +198,6 @@ export default function Index() {
                 </div>
               </div>
             </Card>
-
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              Dica: alterne o modo escuro no topo — os detalhes neon respondem em
-              tempo real.
-            </p>
           </motion.div>
         </main>
       </div>
