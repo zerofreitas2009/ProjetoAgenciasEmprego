@@ -227,6 +227,18 @@ function LayoutShell({ children }: PropsWithChildren) {
   const avatarSrc = meQuery.data?.avatar_data_url ?? null;
   const initials = (displayName || "U").slice(0, 2).toUpperCase();
 
+  const roleValue = (roleQuery.data ?? "").toUpperCase();
+  const roleLabel =
+    roleValue === "ADMIN"
+      ? "Administrador"
+      : roleValue === "RECRUITER"
+        ? "Recrutador"
+        : roleValue
+          ? roleValue
+          : null;
+
+  const identityLabel = roleLabel ?? jobTitle ?? email;
+
   return (
     <div className="min-h-screen bg-white text-slate-900 dark:bg-[#020617] dark:text-slate-100">
       <div className="mx-auto flex w-full max-w-7xl gap-6 px-4 py-6">
@@ -287,7 +299,7 @@ function LayoutShell({ children }: PropsWithChildren) {
                         {displayName}
                       </div>
                       <div className="mt-0.5 truncate text-[11px] text-slate-600 dark:text-slate-300">
-                        {jobTitle ?? email}
+                        {identityLabel}
                       </div>
                     </div>
                   </div>
@@ -380,7 +392,7 @@ function LayoutShell({ children }: PropsWithChildren) {
                       {displayName}
                     </div>
                     <div className="max-w-[160px] truncate text-[11px] text-slate-600 dark:text-slate-300">
-                      {jobTitle ?? ""}
+                      {identityLabel}
                     </div>
                   </div>
                 </div>
