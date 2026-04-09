@@ -14,6 +14,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ToastAction } from "@/components/ui/toast";
 import { hr_Logo as HrLogo } from "@/components/hr_Logo";
 import { toast } from "@/hooks/use-toast";
 
@@ -49,16 +50,41 @@ export default function Signup() {
     );
   }, [email, fullName, password.length, tenantName]);
 
+  async function resendConfirmation(targetEmail: string) {
+    const { error } = await supabase.auth.resend({
+      type: "signup",
+      email: targetEmail,
+    });
+
+    if (error) {
+      toast({
+        title: "Não foi possível reenviar",
+        description: error.message,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setAwaitingConfirmation(true);
+    toast({
+      title: "Link reenviado",
+      description:
+        "Enviamos novamente o e-mail de confirmação. Verifique sua caixa de entrada e o spam.",
+    });
+  }
+
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     if (!isValid || isSubmitting) return;
+
+    const normalizedEmail = email.trim().toLowerCase();
 
     setIsSubmitting(true);
     setAwaitingConfirmation(false);
 
     try {
       const { data, error } = await supabase.auth.signUp({
-        email: email.trim(),
+        email: normalizedEmail,
         password,
         options: {
           data: {
@@ -83,6 +109,27 @@ export default function Signup() {
           "Enviamos um link de confirmação para o seu e-mail. Assim que confirmar, você já entra com seu tenant pronto.",
       });
     } catch (e: any) {
+      const msg = String(e?.message ?? "").toLowerCase();
+
+      if (msg.includes("already registered") || msg.includes("already exists")) {
+        setAwaitingConfirmation(true);
+        toast({
+          title: "Este e-mail já está cadastrado",
+          description:
+            "Se você já tentou criar essa conta antes, talvez só falte confirmar o e-mail. Quer reenviar o link de confirmação?",
+          variant: "destructive",
+          action: (
+            <ToastAction
+              altText="Reenviar confirmação"
+              onClick={() => void resendConfirmation(normalizedEmail)}
+            >
+              Reenviar
+            </ToastAction>
+          ),
+        });
+        return;
+      }
+
       toast({
         title: "Não foi possível criar sua conta",
         description: e?.message ?? String(e),
