@@ -25,18 +25,25 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let mounted = true;
 
-    supabase.auth.getSession().then(async ({ data }) => {
+    // Avoid awaiting network calls inside auth callbacks to prevent GoTrue's local lock warnings.
+    const runInviteAccept = (s: Session | null) => {
+      setTimeout(() => {
+        void acceptPendingInviteIfAny(s);
+      }, 0);
+    };
+
+    supabase.auth.getSession().then(({ data }) => {
       if (!mounted) return;
       const next = data.session ?? null;
       setSession(next);
       setIsLoading(false);
-      await acceptPendingInviteIfAny(next);
+      runInviteAccept(next);
     });
 
-    const { data } = supabase.auth.onAuthStateChange(async (_event, nextSession) => {
+    const { data } = supabase.auth.onAuthStateChange((_event, nextSession) => {
       setSession(nextSession ?? null);
       setIsLoading(false);
-      await acceptPendingInviteIfAny(nextSession ?? null);
+      runInviteAccept(nextSession ?? null);
     });
 
     return () => {
